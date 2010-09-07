@@ -1,0 +1,54 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+
+# display
+alias lcd-off='echo 0 > /sys/class/leds/lcd-backlight/brightness'
+alias lcd-on='echo 2 > /sys/class/leds/lcd-backlight/brightness'
+
+# LEDs
+alias redled-on='echo 255 > /sys/class/leds/red/brightness'
+alias redled-off='echo 0 > /sys/class/leds/red/brightness'
+alias greenled-on='echo 255 > /sys/class/leds/green/brightness'
+alias greenled-off='echo 0 > /sys/class/leds/green/brightness'
+alias blueled-on='echo 255 > /sys/class/leds/blue/brightness'
+alias blueled-off='echo 0 > /sys/class/leds/blue/brightness'
+
+#PROPERTIES
+export PATH=/sbin:/bin
+export INIT_DIR=/sdcard/OpenRecovery/init
+export APP_DIR=/app
+export TAGPREFIX=/tags/.
+
+export TERMINFO=/etc/terminfo
+export TERM=vt100
+
+# BASH
+# we're always rooted, so hardcode the "#", instead of using "\$", it is not working atm.
+# now look on the configuration
+
+if [ -f /etc/.nobashcolors ]; then
+	alias ls='ls --color=never'
+	PS1="Milestone-Recovery:\w\n# "
+else
+
+	# Check if it is a Open Recovery Terminal Emulator, if so, allow theme values
+	# Open Recovery Terminal Emulator sets enviromental variable OPEN_RECOVERY_CONSOLE to 1
+	if [ "$OPEN_RECOVERY_CONSOLE" == "1" ]; then
+		NAMECLR=`sed -n "s/termansicolor.console.name=//p" /res/ui.prop`
+		PATHCLR=`sed -n "s/termansicolor.console.path=//p" /res/ui.prop`
+		
+		if [ "$NAMECLR" == "" ]; then
+			NAMECLR=32
+		fi
+		
+		if [ "$PATHCLR" == "" ]; then
+			PATHCLR=33
+		fi
+	else
+		#always use default layout for adb
+		NAMECLR=32
+		PATHCLR=33
+	fi
+
+	PS1="\e[${NAMECLR}mMilestone-Recovery \e[${PATHCLR}m\w\n\e[0m#\e[m "
+fi

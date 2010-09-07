@@ -1,0 +1,178 @@
+================
+Version 1.40
+================
+Features
+- terminal colors customizable for OR console
+- themes can be changed from menu (the name is in file /res.*/name)
+
+Changes
+- terminfo
+- different handling of keyboard mapping script 
+- menu title can now have different color (see ui.prop for stock theme)
+- several more escape characters for OR console implemented
+
+Bugfixes
+- console escape sequence parsing debugging fixed
+- minor fixes
+
+================
+Version 1.37
+================
+Changes
+- console buffers up to 1000 last printed lines (extended from 200)
+
+Bugfixes
+- fixed nandroid restore not properly restoring yaffs2 partitions in old format
+- fixed nandroid restore not restoring compressed backups
+- fixed nandroid backup not taking md5 checksums
+
+================
+Version 1.36
+================
+Bugfixes
+- fixed nandroid when doing "Backup All" and not having apps2sd; which would fail complaining that /sddata could not be mounted
+(Ticking all partitions in the menu and selecting "Backup Selected" was working properly and the backup has been done correctly.)
+- fixed console cursor blinking
+- squirtle theme fixed
+
+================
+Version 1.35
+================
+Features
+- update.zip can be in new OR format using a shell script (described lower, there are samples of each one)
+- console has now signalling implemented (menu key = CTRL)
+- console has arrow keys implemented
+- console has support for displaying front colors; thus it is no longer needed to disable bash colors
+- console supports calling clear
+
+Changes
+- recovery binary will exit if not run by init (to prevent running it from adb or console)
+- scripts in scripts folder are dos2unixed (on -FuFu- advice)
+- switch files (.nobashcolors, .kdb_qwertz, etc.) are now located in /etc
+- manual settings of the timezone (/etc/timezone), applied if the env. variable TZ doesn't exist
+- update.zip no longer need to have the "update-binary", a default one is used if not found
+
+Bugfixes
+- fixed unyaffs not restoring sticky bit / suid / sgid
+- fixed displaying long menus (it will not be truncated, instead a scrollbar appears)
+- fixed error in switch.sh for XT701
+- fixed color24.console.front in the themes -> default is supposed to be #E5E5E5
+
+================
+Version 1.32
+================
+Features
+- pressing MENU + ALT + C forcibly quits the console
+
+Changes
+- ui.prop contains more options
+- when applying any update.zip package, there is a confirmation menu
+- cursor in console blinks
+
+Bugfixes
+- Error message when ext2 partition on sdcard doesn't exist fixed
+- fixed the bug with imenu when ran more than once in one script
+
+================
+Version 1.30a
+================
+Bugfixes
+- Console layout for QWERTZ / AZERTY fixed
+
+================
+Version 1.30
+================
+Features
+- on-phone console
+- keyboard layout changer included
+- new nandroid, with support of backing up and restoring ext2 partition on sdcard (Note: uses new format of the backup, new backups are located in /sdcard/nandroid/openrecovery, there is a backwards compatibility to restore the old backups)
+- ability to create compressed backups (and autoreboot when done)
+- better nandroid menu
+- menus wrap around
+- theming for the recovery (3 themes included, to apply just rename the "res.*" folder to "res"); color settings can be manipulated in the ui.prop file under the res folder)
+- new commands for menu (tag, label, break)
+- scripts (command "shell") are able to show menu interactively when requesting user feedback (sample included)
+
+Changes
+- the OpenRecovery folder is same for all supported phones
+- only 10 MB stock update file is used
+- Logo, Cdrom and Linux bootloader can be backed up / restored with nandroid
+- keyboard is lit
+- mountable partitions are mounted by default
+
+Bugfixes
+- nandroid fixed
+- fixed likely crash, when scripts prints '%', like '%s'
+- menus don't blink when navigating from one to another
+- LED diode blinking enhanced
+
+================
+Version 1.14
+================
+Changes
+- UI
+- switch.sh is separated (menu creation is in init_recovery.sh and called later by the recovery)
+- Volume keys and Camera key can be used to navigate in Open Recovery
+
+================
+Version 1.12d
+================
+Bugfixes
+- wipe commands working properly
+
+Changes
+- Bash Settings menu, to enable/disable coloured output (preset to disabled), this is persistent settings, it will last through reboots
+
+Features
+- ability to wipe dalvik-cache only (via script)
+
+================
+Version 1.12c
+================
+Bugfixes
+- reboot command is working properly
+- the content of the sdcard is no longer changed when running, everything is being copied into the ramdisk
+- minor fixes
+
+Changes
+- removed the 'init' command, instead uses 'scripted_menu'
+- adbd uses bash (interactively) instead of sh
+- payload installs also bash and toolbox
+- different the menu system (deprecated 'init' command), each menu must be generated from a script (notes later)
+- added init folder, scripts (with extension *.sh) are ran there on startup of the open recovery.
+- the diode is blinking in blue instead of red.
+
+Features
+- the recovery prints the output of the scripts / programs (prints their stdout)
+- application menu (described later)
+- new su and SuperUser.apk by ChainsDD 
+- if sdcard has ext2 partition, it is noted in fstab under "/sddata" (the module is inserted automatically)
+
+================
+Version 1.05
+================
+Bugfixes
+- fixed a bug in payload making it dependant on the system
+- there is now nothing in the /system folder when unmounted
+- toolbox linked statically
+- busybox now installs symlinks, instead of copying itself
+- fixed a bug in adb about the shell being in /sbin/sh instead of /system/bin/sh 
+- cleaned up, removed unnecessary libraries and binaries
+- switch.sh now initializes the Open Recovery completely, no other script is used for initialization
+- permissions set correctly
+
+Features
+- added option to wipe
+- menu's now have header (the menu file structure has been changed)
+- added the possibility to run scripts, with .*sh extension located in scripts folder under OpenRecovery folder (shell is /sbin/sh or /sbin/bash) 
+
+================
+Version 1.02
+================
+- fixed root installation
+
+================
+Version 1.01
+================
+- initial release
+
