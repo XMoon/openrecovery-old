@@ -1,0 +1,61 @@
+===============================================================================
+Console (MILESTONE ONLY):
+===============================================================================
+
+- MENU key is CTRL, pressing MENU + ALT + C forcibly quits the console
+- scrolling (pressing volume keys by a row (or eight rows if ALT is pressed))
+- don't forget to select correct keyboard layout (under settings menu)
+- search key is tab
+- Alt+A prints "|" instead of Euro, Alt+F prints "$" instead of Pound
+- limited support for escape characters but allowing to use "clear" and "ls" coloured
+
+===============================================================================
+Changing a theme:
+===============================================================================
+
+- "Theme" menu under settings menu. New theme folder are must be prefixed with "res."
+
+===============================================================================
+OR update.zip format:
+===============================================================================
+
+- the update.zip is extracted to "/sdcard/OpenRecovery/tmp/update"
+- shell script, located in the archive in "META-INF/update-or.sh" is called; under env. variable PACKAGE is the root folder of the extraction: "/sdcard/OpenRecovery/tmp/update"
+- the script can do the very same as script called from the menu (can call imenu)
+- progress bar is not supported in this format
+
+===============================================================================
+ui.prop file:
+===============================================================================
+
+This file sets the colors for the theme. It's located right under the "res" folder.
+color3.LED=#100 <- led diode color (3-bit RGB, use only 0 or 1)
+color32.background=#000000A0 <- recovery background color
+color32.title=#FF3705FF <- recovery menu title color
+color32.menu=#FF3705FF <- recovery menu color (title color as well, if it isn't set explicitly)
+color32.selection=#FFFFFFFF <- recovery selected item color
+color32.script=#FFFF00FF <- recovery script color
+
+#Console color properties
+color24.console.header=#FFFF00 <- console header color
+color24.console.background=#000000 <- console background color
+color24.console.front=#E5E5E5 <- console foreground color
+termansicolor.console.name=32 <- ansi color code used to print "Milestone-Recovery"
+termansicolor.console.path=33 <- ansi color code used to print path
+
+
+#Console terminal colors <- these are ANSI terminal colors
+color24.console.termclr30=#000000
+color24.console.termclr31=#CD0000
+color24.console.termclr32=#00CD00
+color24.console.termclr33=#CDCD00
+color24.console.termclr34=#0000EE
+color24.console.termclr35=#CD00CD
+color24.console.termclr36=#00CDCD
+color24.console.termclr37=#E5E5E5
+color24.console.termclr90=#7F7F7F
+color24.console.termclr91=#FF0000
+color24.console.termclr92=#00FF00
+
+(The example values are used by default when the property is not found.)
+
