@@ -1,0 +1,5 @@
+Steps to install:
+- compile the binaries and put them to sdcard/sbin folder
+- copy the sdcard folder to the root of the sdcard and rename it to "OpenRecovery"
+- copy the correct zip file from the zip folder to the root of the sdcard
+- on XT701, flash the lite version image
