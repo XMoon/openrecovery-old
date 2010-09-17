@@ -24,9 +24,9 @@ if [ -d $INIT_DIR ]
 then
 	for INIT in "$INIT_DIR/"*.sh; do
 		#omit if there is none
-		if [ $INIT != "$INIT_DIR/*.sh" ]
+		if [ "$INIT" != "$INIT_DIR/*.sh" ]
 		then
-			BN_INIT="$(basename $INIT)"
+			BN_INIT=`basename "$INIT"`
 			echo "Calling initializer $BN_INIT file."
 			"$INIT"
 		fi
@@ -52,9 +52,9 @@ then
 
 	for APPINIT in "$APP_DIR/"*.sh; do
 		#omit if there is none
-		if [ $APPINIT != "$APP_DIR/*.sh" ]
+		if [ "$APPINIT" != "$APP_DIR/*.sh" ]
 		then
-			BN_APPINIT="$(basename $APPINIT)"
+			BN_APPINIT=`basename "$APPINIT"`
 			echo "Calling application initializer $BN_APPINIT file."
 			"$APPINIT"
 		fi

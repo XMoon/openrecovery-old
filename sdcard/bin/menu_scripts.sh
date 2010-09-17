@@ -10,10 +10,10 @@ if [ -d $SCRIPTS_DIR ]
 then
 	for SCRIPT in "$SCRIPTS_DIR/"*.sh; do
 		#omit the default one
-		if [ $SCRIPT != "$SCRIPTS_DIR/*.sh" ]
+		if [ "$SCRIPT" != "$SCRIPTS_DIR/*.sh" ]
 		then
-			BASE_SCRIPT="$(basename $SCRIPT)"
-			echo "$BASE_SCRIPT:shell:$SCRIPT" >> "$MENU_FILE"
+			BASE_SCRIPT=`basename "$SCRIPT"`
+			echo "$BASE_SCRIPT:shell:\"$SCRIPT\"" >> "$MENU_FILE"
 		fi
 	done
 fi

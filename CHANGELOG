@@ -1,4 +1,22 @@
 ================
+Version 1.42
+================
+Features
+- possibility to automatically boot into OpenRecovery on Milestone (see INSTALL) when rebooting into the recovery
+- deleting a nandroid backup has now confirmation dialog
+
+Changes
+- allows spaces in nandroid folder names, scripts and updates
+- nandroid will automatically determine the format regardless of the directory
+- envirmental variables changed
+- removed command handling in "full" version
+- removed scriptrunner script to run the menu scripts; handled in the binary now
+
+Bugfixes
+- running a script is now like calling system function in C; fixes quotes issues inside arguments
+- terminal variables are now exported only into OpenRecovery terminal
+
+================
 Version 1.40
 ================
 Features

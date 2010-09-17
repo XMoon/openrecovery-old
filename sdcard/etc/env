@@ -1,0 +1,11 @@
+#/etc/env - OpenRecovery Enviroment variables override
+#only adbd and recovery binaries are run from the init - so just patch them
+
+PATH=/sbin:/bin
+LD_LIBRARY_PATH=/lib
+ANDROID_ASSETS=/system/app
+
+#OpenRecovery specific props
+INIT_DIR=/sdcard/OpenRecovery/init
+APP_DIR=/app
+TAGPREFIX=/tags/.

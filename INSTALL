@@ -1,5 +1,15 @@
 Steps to install:
-- compile the binaries and put them to sdcard/sbin folder
 - copy the sdcard folder to the root of the sdcard and rename it to "OpenRecovery"
-- copy the correct zip file from the zip folder to the root of the sdcard
-- on XT701, flash the lite version image
+- copy the correct zip file (see phones) from the zip folder to the root of the sdcard
+- on XT701, flash the lite version image (inside zips folder)
+
+Phones:
+SHOLS is for Motorola Milestone
+STCU is for Motorola Sholes Tablet XT701
+
+Automatic booting into Open Recovery on Motorola Milestone:
+!!! THIS WILL PREVENT FROM AUTOMATIC APPLIANCE OF AN OTA UPDATE !!!
+- ensure the script inside the zip folder is called on startup when booting normally (sh hijack, or inside mot_boot_mode)
+- reboot into recovery and boot Open Recovery manually
+- on next reboot into recovery, Open Recovery will be booted automatically
+

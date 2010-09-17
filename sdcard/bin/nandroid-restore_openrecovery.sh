@@ -1,20 +1,9 @@
 #!/sbin/bash
 
-# $1 DIRECTORY
-# $2 TYPE
-# $3 --all
+# $1 DIRECTORY (absolute path)
+# $2 --all (optional)
 
-if [ "$2" == "OPEN_RCVR" ]; then
-	OPEN_RCVR_BKP=1;
-else 
-	OPEN_RCVR_BKP=0;
-fi
-
-if [ $OPEN_RCVR_BKP -eq 1 ]; then
-	RESTOREPATH="/sdcard/nandroid/openrecovery/$1"
-else
-	RESTOREPATH="/sdcard/nandroid/adbrecovery/$1"
-fi
+RESTOREPATH=$1
 
 REBOOT=0
 NOTHING=1
@@ -52,7 +41,7 @@ if [ -f "$TAGPREFIX"nand_rest_autoreboot ]; then
 	REBOOT=1
 fi
 
-if [ "$3" == "--all" ]; then
+if [ "$2" == "--all" ]; then
 	REST_BOOT=1
 	REST_BPSW=1
 	REST_LBL=1
@@ -174,7 +163,7 @@ fi
 COMPRESSED=0
 
 CWD=$PWD
-cd $RESTOREPATH
+cd "$RESTOREPATH"
 
 if [ `ls *.bz2 2>/dev/null|wc -l` -ge 1 ]; then
 	echo "This backup is compressed."
@@ -190,14 +179,19 @@ if [ `ls *.bz2 2>/dev/null|wc -l` -ge 1 ]; then
 fi
 
 #===============================================================================
+# Check the format (either nandroid.md5 exists or not)
+# If it doesn't exist, think of it to be the Open Recovery Backup type
+# and fail later when attempting to restore the partition.
+#
 # If old format, verify checksums now
 #===============================================================================
 
-if [ $OPEN_RCVR_BKP -eq 0 ]; then
-	if [ ! -f nandroid.md5 ]; then
-		echo "E:Failed to find the checksum file."
-		exit 1
-	fi 
+if [ ! -f nandroid.md5 ]; then
+	OPEN_RCVR_BKP=1
+	echo "Assuming Open Recovery backup format."
+else
+	OPEN_RCVR_BKP=0
+	echo "Assuming ADB Recovery backup format."
 	
 	echo "Verifying MD5..."
 	
@@ -447,7 +441,7 @@ else
 				CW2=$PWD
 				cd /sddata
 				tar -xvf $RESTOREPATH/ext2.tar ./ > /dev/null
-				cd $CW2
+				cd "$CW2"
 				echo "done"
 				
 				if [ $COMPRESSED -eq 1 ]; then
@@ -463,7 +457,7 @@ fi
 # Exit
 #===============================================================================
 
-cd $CWD
+cd "$CWD"
 echo "Restoring finished."
 
 if [ $REBOOT -eq 1 ]; then

@@ -12,8 +12,21 @@
 
 if [ "$1" == "STCU" ]; then
 	NOCUST=1
+	INSTALL_COMMAND=0
 else
 	NOCUST=0
+	INSTALL_COMMAND=1
+fi
+
+#post-installation
+#===============================================================================
+
+#put the command into the cache - if it doesn't exist
+if [ $INSTALL_COMMAND -eq 1 ]; then
+	if [ ! -f /cache/recovery/command ]; then
+		cp -f /sdcard/OpenRecovery/etc/command /cache/recovery/command
+		chmod 0644 /cache/recovery/command
+	fi
 fi
 
 #basic initialization
@@ -28,6 +41,10 @@ if [ $NOCUST -eq 0 ]; then
 	mkdir /cust
 	chmod 0755 /cust
 fi
+
+#enviroment override
+cp -f /sdcard/OpenRecovery/etc/env /etc/env
+chmod 0644 /etc/env
 
 #fstab
 cp -f "/sdcard/OpenRecovery/etc/fstab."$1 /etc/fstab
@@ -132,7 +149,7 @@ cp -f /sdcard/OpenRecovery/sbin/imenu /sbin/imenu
 chmod 0755 /sbin/imenu
 
 #adbd
-cp -f /sdcard/OpenRecovery/sbin/adbd_recovery /sbin/adbd
+cp -f /sdcard/OpenRecovery/sbin/adbd_bash /sbin/adbd
 chmod 0755 /sbin/adbd
 
 #create a bin folder for the scripts

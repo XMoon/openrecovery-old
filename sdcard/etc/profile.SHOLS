@@ -13,15 +13,6 @@ alias greenled-off='echo 0 > /sys/class/leds/green/brightness'
 alias blueled-on='echo 255 > /sys/class/leds/blue/brightness'
 alias blueled-off='echo 0 > /sys/class/leds/blue/brightness'
 
-#PROPERTIES
-export PATH=/sbin:/bin
-export INIT_DIR=/sdcard/OpenRecovery/init
-export APP_DIR=/app
-export TAGPREFIX=/tags/.
-
-export TERMINFO=/etc/terminfo
-export TERM=vt100
-
 # BASH
 # we're always rooted, so hardcode the "#", instead of using "\$", it is not working atm.
 # now look on the configuration
@@ -34,6 +25,11 @@ else
 	# Check if it is a Open Recovery Terminal Emulator, if so, allow theme values
 	# Open Recovery Terminal Emulator sets enviromental variable OPEN_RECOVERY_CONSOLE to 1
 	if [ "$OPEN_RECOVERY_CONSOLE" == "1" ]; then
+		
+		# Terminal Properties
+		export TERMINFO=/etc/terminfo
+		export TERM=vt100
+		
 		NAMECLR=`sed -n "s/termansicolor.console.name=//p" /res/ui.prop`
 		PATHCLR=`sed -n "s/termansicolor.console.path=//p" /res/ui.prop`
 		
