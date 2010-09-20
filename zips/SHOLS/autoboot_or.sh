@@ -11,8 +11,5 @@ if [ -f /cache/recovery/command ]; then
 	
 	mount -o bind /cache/recovery_stock /cache/recovery
 	
-	#keep it read only, so it fails to delete it
-	mount -o remount,ro /cache/recovery	
-	
 fi
 
