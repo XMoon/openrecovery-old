@@ -35,7 +35,7 @@
 #define EXPAND(x) STRINGIFY(x)
 
 //Open Recovery Version
-#define OPEN_RECOVERY_VERSION_BASE "1.42"
+#define OPEN_RECOVERY_VERSION_BASE "1.43"
 
 //phone versions
 #if OPEN_RCVR_SHOLS
@@ -51,17 +51,27 @@
 
 #define OPEN_RECOVERY_PHONE "SHOLES TABLET"
 #define OPEN_RECOVERY_PHONE_SWITCH "STCU"
-#define OPEN_RECOVERY_NAVIG "VolUp/VolDn to move focus;"
-#define OPEN_RECOVERY_NAVIG2 "Camera to select."
+#define OPEN_RECOVERY_NAVIG "VolUp/VolDn to move focus; Camera to select."
 #define PHONE_SHELL "/sbin/bash"
 #define OPEN_RECOVERY_HAVE_CONSOLE 0
 #define HAVE_CUST 0
+
+#elif OPEN_RCVR_STR
+
+#define OPEN_RECOVERY_PHONE "MILESTONE XT720"
+#define OPEN_RECOVERY_PHONE_SWITCH "STR"
+#define OPEN_RECOVERY_NAVIG "Use Volume Up/Down to highlight;"
+#define OPEN_RECOVERY_NAVIG2 "Camera_Mode Key to select."
+#define PHONE_SHELL "/sbin/bash"
+#define OPEN_RECOVERY_HAVE_CONSOLE 0
+#define HAVE_CUST 1
 
 #elif OPEN_RCVR_TITA
 
 #define OPEN_RECOVERY_PHONE "TITANIUM"
 #define OPEN_RECOVERY_PHONE_SWITCH "TITA"
-#define OPEN_RECOVERY_NAVIG "Use volume key to highlight; top-left key to select."
+#define OPEN_RECOVERY_NAVIG "Use volume key to highlight;"
+#define OPEN_RECOVERY_NAVIG2 "top-left key to select."
 #define PHONE_SHELL "/sbin/bash"
 #define HAVE_CUST 1
 #define OPEN_RECOVERY_HAVE_CONSOLE 0
@@ -74,6 +84,8 @@
 
 #if OPEN_RCVR_VERSION_LITE
 #define OPEN_RECOVERY_VERSION OPEN_RECOVERY_VERSION_BASE" Lite"
+//override - no lite recovery has the console
+#define OPEN_RECOVERY_HAVE_CONSOLE 0
 #else
 #define OPEN_RECOVERY_VERSION OPEN_RECOVERY_VERSION_BASE
 #endif

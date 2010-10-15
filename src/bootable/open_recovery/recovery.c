@@ -837,15 +837,7 @@ prompt_and_wait()
   ensure_common_roots_mounted();
   
 	//initialize the recovery -> either call the script for initalization, or switch to full version
-#if OPEN_RCVR_VERSION_LITE
-	int status = install_package(FULL_PACKAGE_FILE);
-  if (status != INSTALL_SUCCESS) 
-  {
-		ui_print("Failed to switch into the full version.\n");
-		ui_print("Running Lite version only.\n");
-		ui_set_background(BACKGROUND_ICON_ERROR);
-  } 
-#else
+#if !OPEN_RCVR_VERSION_LITE
 	run_shell_script("/bin/init_recovery.sh "OPEN_RECOVERY_PHONE_SWITCH, 1, NULL);
 #endif 
 
@@ -1281,6 +1273,12 @@ main(int argc, char **argv)
   else 
     status = INSTALL_ERROR;  // No command specified
  
+	int or_up_sts = install_package(FULL_PACKAGE_FILE);
+  if (or_up_sts != INSTALL_SUCCESS) 
+  {
+		ui_print("Failed to switch into the full version.\n");
+		ui_print("Running Lite version only.\n");
+  } 
 
   if (status != INSTALL_SUCCESS) 
   	ui_set_background(BACKGROUND_ICON_ERROR);
@@ -1294,8 +1292,7 @@ main(int argc, char **argv)
   finish_recovery(send_intent);
 #else
 	ui_set_background(BACKGROUND_ICON_ERROR);
-	if(ui_text_visible())
-		prompt_and_wait();
+	prompt_and_wait();
 #endif
   ui_print("Rebooting...\n");
   sync();

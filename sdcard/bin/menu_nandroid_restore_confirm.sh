@@ -15,7 +15,7 @@ echo "Partitions:break:*" >> "$MENU_FILE"
 CWD=$PWD
 cd "$1"
 
-for image in system data cache cust cdrom boot bpsw lbl logo ext2; do
+for image in system data cache cust cdrom boot bpsw lbl logo devtree ext2; do
 	if [ `ls $image* 2>/dev/null | wc -l` == 0 ]; then
   	continue
   fi
@@ -47,6 +47,9 @@ for image in system data cache cust cdrom boot bpsw lbl logo ext2; do
 			;;
     logo)
 				echo "Logo:tag:nand_rest_logo" >> "$MENU_FILE"
+			;;
+		devtree)
+				echo "Device Tree:tag:nand_rest_devtree" >> "$MENU_FILE"
 			;;
     ext2)
 				echo "SD Data:tag:nand_rest_ext2" >> "$MENU_FILE"

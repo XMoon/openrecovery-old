@@ -5,6 +5,7 @@
 #
 # SHOLS - Milestone (A853, XT702)
 # STCU  - Sholes Tablet (XT701)
+# STR		- Milestone XT720 (XT720)
 # TITA  - Titanium (XT800)
 
 #flags
@@ -15,7 +16,10 @@ if [ "$1" == "STCU" ]; then
 	INSTALL_COMMAND=0
 else
 	NOCUST=0
-	INSTALL_COMMAND=1
+	
+	if [ "$1" == "SHOLS" ]; then
+		INSTALL_COMMAND=1
+	fi
 fi
 
 #post-installation
@@ -120,7 +124,7 @@ chmod 0755 /sbin/erase_image-or
 ln -s /sbin/erase_image-or /sbin/erase_image
 chmod 0755 erase_image
 
-cp -f /sdcard/OpenRecovery/sbin/erase_image-or /sbin/flash_image-or
+cp -f /sdcard/OpenRecovery/sbin/flash_image-or /sbin/flash_image-or
 chmod 0755 /sbin/flash_image-or
 ln -s /sbin/flash_image-or /sbin/flash_image
 chmod 0755 flash_image

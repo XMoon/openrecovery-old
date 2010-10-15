@@ -12,6 +12,7 @@ REST_BOOT=0
 REST_BPSW=0
 REST_LBL=0
 REST_LOGO=0
+REST_DEVTREE=0
 
 REST_SYSTEM=0
 REST_DATA=0
@@ -25,6 +26,8 @@ TAGPREFIX="/tags/."
 
 #amount of space remaining
 FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
+#error
+ERROR=""
 
 echo "+----------------------------------------------+"
 echo "+                                              +"
@@ -46,6 +49,7 @@ if [ "$2" == "--all" ]; then
 	REST_BPSW=1
 	REST_LBL=1
 	REST_LOGO=1
+	REST_DEVTREE=1
 	REST_SYSTEM=1
 	REST_DATA=1
 	REST_CACHE=1
@@ -87,6 +91,11 @@ else
 	
 	if [ -f "$TAGPREFIX"nand_rest_logo ]; then
 		REST_LOGO=1
+		NOTHING=0
+	fi
+	
+	if [ -f "$TAGPREFIX"nand_rest_devtree ]; then
+		REST_DEVTREE=1
 		NOTHING=0
 	fi
 	
@@ -184,15 +193,14 @@ fi
 # and fail later when attempting to restore the partition.
 #
 # If old format, verify checksums now
+# If mixed format, give priority to the old format
 #===============================================================================
 
 if [ ! -f nandroid.md5 ]; then
 	OPEN_RCVR_BKP=1
-	echo "Assuming Open Recovery backup format."
 else
-	OPEN_RCVR_BKP=0
-	echo "Assuming ADB Recovery backup format."
-	
+	OPEN_RCVR_BKP=0	
+	echo "NOTE: This backup is in old format."
 	echo "Verifying MD5..."
 	
 	md5sum -c nandroid.md5
@@ -206,37 +214,44 @@ fi
 # Restore the non-filesystem partitions
 #===============================================================================
 
-for image in boot bpsw lbl logo; do
+for image in boot bpsw lbl logo devtree; do
 	if [ ! -f $image.img* ]; then
-		echo "Partition $image not backed up, skipping."
+		echo "${image}: Not backed up."
 		continue
 	fi
 	
 	case $image in
 		boot)
 			if [ $REST_BOOT -eq 0 ]; then
-				echo "Skipping partition boot."
+				echo "boot: Skipping."
 				continue
 			fi
 			;;
 			
 		bpsw)
 			if [ $REST_BPSW -eq 0 ]; then
-				echo "Skipping partition bpsw."
+				echo "bpsw: Skipping."
 				continue
 			fi
 			;;
 			
 		lbl)
 			if [ $REST_LBL -eq 0 ]; then
-				echo "Skipping partition lbl."
+				echo "lbl: Skipping."
 				continue
 			fi
 			;;
 			
 		logo)
 			if [ $REST_LOGO -eq 0 ]; then
-				echo "Skipping partition logo."
+				echo "logo: Skipping."
+				continue
+			fi
+			;;
+			
+		devtree)
+			if [ $REST_DEVTREE -eq 0 ]; then
+				echo "devtree: Skipping."
 				continue
 			fi
 			;;
@@ -245,41 +260,43 @@ for image in boot bpsw lbl logo; do
 	if [ $OPEN_RCVR_BKP -eq 1 ]; then  
 	
 		if [ $COMPRESSED -eq 1 ]; then
-			echo -n "Decompressing $image..."
+			echo -n "${image}: Decompressing..."
 			bunzip2 -c $image.img.bz2 > $image.img
 			echo "done"
 		fi
 		
 		if [ ! -f $image.md5 ]; then
-			echo "Partition $image checksum file missing, skipping."
+			echo "${image}: MD5 checksum file missing, skipping."
 			
 			if [ $COMPRESSED -eq 1 ]; then
 				#delete the uncompressed part
 				rm $image.img
 			fi
 			
+			ERROR="${ERROR}${image}: MD5 checksum file missing.\n"		
 			continue
 		fi
 		
-		echo -n "Verifying MD5..."  	
+		echo -n "${image}: Verifying MD5..."  	
 		md5sum -c $image.md5 > /dev/null
 		
 		if [ $? -eq 1 ]; then
 			echo "failed"
-			echo "Partition $image checksum mismatch, skipping."
+			echo "${image}: MD5 checksum mismatch, skipping."
 			
 			if [ $COMPRESSED -eq 1 ]; then
 				#delete the uncompressed part
 				rm $image.img
 			fi
 			
+			ERROR="${ERROR}${image}: MD5 checksum mismatch.\n"
 			continue
 		fi
 		
 		echo "done"
 	fi
 	
-	echo -n "Restoring $image..."
+	echo -n "${image}: Restoring..."
 	$flash_image $image $image.img > /dev/null 2> /dev/null
 	echo "done"
 	
@@ -296,98 +313,109 @@ done
 
 for image in system data cache cust cdrom; do
 	if [ ! -f $image.img* ]; then
-		echo "Partition $image not backed up, skipping."
+		echo "${image}: Not backed up."
 		continue
 	fi
 	
 	case $image in
 		system)
 			if [ $REST_SYSTEM -eq 0 ]; then
-				echo "Skipping partition system."
+				echo "system: Skipping."
 				continue
 			fi
 		  ;;
 	    
 		data)
 			if [ $REST_DATA -eq 0 ]; then
-				echo "Skipping partition data."
+				echo "data: Skipping."
 				continue
 			fi
 			;;
 	    
 		cache)
 			if [ $REST_CACHE -eq 0 ]; then
-				echo "Skipping partition cache."
+				echo "cache: Skipping."
 				continue
 			fi
 			;;
 	
 		cust)
 			if [ $REST_CUST -eq 0 ]; then
-				echo "Skipping partition cust."
+				echo "cust: Skipping ."
 				continue
 			fi
 			;;
 	
 		cdrom)
 			if [ $REST_CDROM -eq 0 ]; then
-				echo "Skipping partition cdrom."
+				echo "cdrom: Skipping."
 				continue
 			fi
 			;;
 	esac
 	
 	umount /$image 2> /dev/null
-	mount /$image || FAIL=1
+	mount /$image 2> /dev/null
 	
-	if [ $FAIL -eq 1 ]; then
+	if [ $? -ne 0 ]; then
 		echo "E:Cannot mount properly /$image."
-		echo "Not restoring $image."
+		echo "${image}: Cannot restore."
+		ERROR="${ERROR}${image}: Failed to mount.\n"
 		continue
 	fi
 	
-	if [ $OPEN_RCVR_BKP -eq 1 ]; then
+	if [ $OPEN_RCVR_BKP -eq 1 ]; then  
 	
 		if [ $COMPRESSED -eq 1 ]; then
-			echo -n "Decompressing $image..."
+			echo -n "${image}: Decompressing..."
 			bunzip2 -c $image.img.bz2 > $image.img
 			echo "done"
 		fi
 		
 		if [ ! -f $image.md5 ]; then
-			echo "Partition $image checksum file missing, skipping."		
+			echo "${image}: MD5 checksum file missing, skipping."
 			
 			if [ $COMPRESSED -eq 1 ]; then
 				#delete the uncompressed part
 				rm $image.img
 			fi
 			
+			ERROR="${ERROR}${image}: MD5 checksum file missing.\n"		
 			continue
 		fi
 		
-		echo -n "Verifying MD5..."
+		echo -n "${image}: Verifying MD5..."  	
 		md5sum -c $image.md5 > /dev/null
 		
 		if [ $? -eq 1 ]; then
 			echo "failed"
-			echo "Partition $image checksum mismatch, skipping."
+			echo "${image}: MD5 checksum mismatch, skipping."
 			
 			if [ $COMPRESSED -eq 1 ]; then
 				#delete the uncompressed part
 				rm $image.img
 			fi
 			
+			ERROR="${ERROR}${image}: MD5 checksum mismatch.\n"
 			continue
 		fi
+		
 		echo "done"
 	fi
 	
 	umount /$image 2> /dev/null
-	echo -n "Erasing $image..."
-	$erase_image $image > /dev/null 2> /dev/null
+	echo -n "${image}: Erasing..."
+	
+	if [ "$image" == "data" ]; then
+		my_image="userdata"
+	else
+		my_image=$image	
+	fi
+		
+	$erase_image $my_image > /dev/null 2> /dev/null
 	echo "done"
 	mount /$image
-	echo -n "Restoring $image..."
+	echo -n "${image}: Restoring..."
 	$unyaffs $image.img /$image	> /dev/null 2> /dev/null
 	echo "done"
 	
@@ -403,10 +431,14 @@ done
 #===============================================================================
 
 if [ ! -f ext2.tar ]; then
-	echo "Partition ext2 not backed up, skipping."
+	echo "ext2: Not backed up."
 else 
 	if [ $REST_EXT2 -eq 0 ]; then
-		echo "Skipping partition ext2."
+		echo "ext2: Skipping."
+	elif [ ! -d /sddata ]; then
+		echo "E: ext2 partition does not exist"
+		echo "ext2: Cannot restore."
+		ERROR="${ERROR}ext2: Attempted to restore non-existing partition.\n"
 	else	
 		if [ ! -f ext2.md5 ]; then
 			echo "Partition ext2 checksum file missing, skipping."		
@@ -416,8 +448,11 @@ else
 				rm ext2.tar
 			fi
 			
-		else	
-			echo -n "Verifying MD5..."
+			ERROR="${ERROR}ext2: MD5 checksum file missing.\n"
+			
+		else
+					
+			echo -n "ext2: Verifying MD5..."
 			md5sum -c ext2.md5 > /dev/null
 			
 			if [ $? -eq 1 ]; then
@@ -429,14 +464,16 @@ else
 					rm ext2.tar
 				fi
 				
+				ERROR="${ERROR}ext2: MD5 checksum mismatch.\n"
+				
 			else
 				echo "done"
-				echo -n "Erasing ext2..."
+				echo -n "ext2: Erasing..."
 				umount /sddata 2> /dev/null
 				mkfs.ext2 -c /dev/block/mmcblk0p2 > /dev/null
 				echo "done"
 				
-				echo -n "Restoring ext2..."
+				echo -n "ext2: Restoring..."
 				mount /sddata
 				CW2=$PWD
 				cd /sddata
@@ -458,8 +495,21 @@ fi
 #===============================================================================
 
 cd "$CWD"
-echo "Restoring finished."
-
-if [ $REBOOT -eq 1 ]; then
-	reboot
+if [ "$ERROR" != "" ]; then
+	echo "+----------------------------------------------+"
+	echo "+                                              +"
+	echo "+           ERROR IN NANDROID RESTORE          +"
+	echo "+                                              +"
+	echo "+----------------------------------------------+"
+	
+	printf "$ERROR"
+	
+else
+	echo "Restoring finished successfully."
+	
+	if [ $REBOOT -eq 1 ]; then
+		reboot
+	fi
+	
 fi
+

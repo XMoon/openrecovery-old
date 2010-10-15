@@ -1,4 +1,14 @@
 ================
+Version 1.43
+================
+Changes
+- nandroid now backs up/restores devtree partition (FroYo 2.2.1 fix)
+
+Bugfixes
+- nandroid not erasing userdata partition on restore fixed
+- restoration of binary parition fixed
+
+================
 Version 1.42
 ================
 Features

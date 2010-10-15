@@ -28,12 +28,15 @@ int device_recovery_start() {
     return 0;
 }
 
-int device_toggle_display(volatile char* key_pressed, int key_code) {
-    return key_code == KEY_HOME;
+int device_toggle_display(volatile char* key_pressed, int key_code) 
+{
+    return (key_pressed[KEY_VOLUMEUP] && key_code == KEY_HP)
+    				|| (key_pressed[KEY_HP] && key_code == KEY_VOLUMEUP);
 }
 
-int device_reboot_now(volatile char* key_pressed, int key_code) {
-    return key_code == KEY_END;
+int device_reboot_now(volatile char* key_pressed, int key_code) 
+{
+    return 0;
 }
 
 int device_handle_key(int key_code, int visible) {

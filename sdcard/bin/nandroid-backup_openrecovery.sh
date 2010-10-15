@@ -9,6 +9,7 @@ BKP_BOOT=0
 BKP_BPSW=0
 BKP_LBL=0
 BKP_LOGO=0
+BKP_DEVTREE=0
 
 BKP_SYSTEM=0
 BKP_DATA=0
@@ -51,6 +52,7 @@ if [ "$1" == "--all" ]; then
 	BKP_BPSW=1
 	BKP_LBL=1
 	BKP_LOGO=1
+	BKP_DEVTREE=1
 	BKP_SYSTEM=1
 	BKP_DATA=1
 	BKP_CACHE=1
@@ -92,6 +94,11 @@ else
 	
 	if [ -f "$TAGPREFIX"nand_bkp_logo ]; then
 		BKP_LOGO=1
+		NOTHING=0
+	fi
+	
+	if [ -f "$TAGPREFIX"nand_bkp_devtree ]; then
+		BKP_DEVTREE=1
 		NOTHING=0
 	fi
 	
@@ -184,6 +191,10 @@ if [ $BKP_LOGO -eq 1 ]; then
 	BACKUPLEGEND=$BACKUPLEGEND"l"
 fi
 
+if [ $BKP_DEVTREE -eq 1 ]; then
+	BACKUPLEGEND=$BACKUPLEGEND"d"
+fi
+
 if [ $BKP_SYSTEM -eq 1 ]; then
 	umount /system 2> /dev/null
 	mount /system || FAIL=1
@@ -272,32 +283,39 @@ cd $DESTDIR
 # Backup the non-filesystem partitions
 #===============================================================================
 
-for image in boot bpsw lbl logo; do
+for image in boot bpsw lbl logo devtree; do
 	case $image in
 		boot)
 			if [ $BKP_BOOT -eq 0 ]; then
-				echo "Dump of the boot partition suppressed."
+				echo "boot: Skipping."
 				continue
 			fi
 			;;
 			
 		bpsw)
 			if [ $BKP_BPSW -eq 0 ]; then
-				echo "Dump of the bpsw partition suppressed."
+				echo "bpsw: Skipping."
 				continue
 			fi
 			;;
 			
 		lbl)
 			if [ $BKP_LBL -eq 0 ]; then
-				echo "Dump of the lbl partition suppressed."
+				echo "lbl: Skipping."
 				continue
 			fi
 			;;
 			
 		logo)
 			if [ $BKP_LOGO -eq 0 ]; then
-				echo "Dump of the logo partition suppressed."
+				echo "logo: Skipping."
+				continue
+			fi
+			;;
+			
+		devtree)
+			if [ $BKP_DEVTREE -eq 0 ]; then
+				echo "devtree: Skipping."
 				continue
 			fi
 			;;
@@ -307,7 +325,7 @@ for image in boot bpsw lbl logo; do
 	DEVICEMD5=`$dump_image $image - | md5sum | awk '{ print $1 }'`
 	sleep 1s
 	MD5RESULT=1
-	echo -n "Dumping $image..."
+	echo -n "${image}: Dumping..."
 	ATTEMPT=0
 	
 	while [ $MD5RESULT -eq 1 ]; do
@@ -331,7 +349,7 @@ for image in boot bpsw lbl logo; do
 	echo "done"
 	
 	#generate the md5 sum
-	echo -n "Generating md5 sum..."
+	echo -n "${image}: Generating MD5..."
 	md5sum $image.img > $image.md5
 	echo "done"
 	
@@ -345,47 +363,47 @@ for image in system data cache cust cdrom; do
 	case $image in
 		system)
 			if [ $BKP_SYSTEM -eq 0 ]; then
-				echo "Dump of the system partition suppressed."
+				echo "system: Skipping."
 				continue
 			fi
 			;;
 		  
 		data)
 			if [ $BKP_DATA -eq 0 ]; then
-				echo "Dump of the data partition suppressed."
+				echo "data: Skipping."
 				continue
 			fi
 			;;
 		  
 		cache)
 			if [ $BKP_CACHE -eq 0 ]; then
-				echo "Dump of the cache partition suppressed."
+				echo "cache: Skipping."
 				continue
 			fi
 			;;
 		
 		cust)
 			if [ $BKP_CUST -eq 0 ]; then
-				echo "Dump of the cust partition suppressed."
+				echo "cust: Skipping."
 				continue
 			fi
 			;;
 		
 		cdrom)
 			if [ $BKP_CDROM -eq 0 ]; then
-				echo "Dump of the cdrom partition suppressed."
+				echo "cdrom: Skipping."
 				continue
 			fi
 			;;    
 	esac
 	
-	echo -n "Dumping $image..."
+	echo -n "${image}: Dumping..."
 	$mkyaffs2image /$image $DESTDIR/$image.img > /dev/null 2> /dev/null
 	sync
 	echo "done"
 	
 	#generate the md5 sum
-	echo -n "Generating MD5 sum..."
+	echo -n "${image}: Generating MD5..."
 	md5sum $image.img > $image.md5
 	echo "done"
 	
@@ -396,12 +414,12 @@ done
 #===============================================================================
 
 if [ $BKP_EXT2 -eq 1 ]; then
-	echo -n "Checking ext2 partition..."
+	echo -n "ext2: Checking..."
 	umount /sddata 2> /dev/null
 	e2fsck -fp /dev/block/mmcblk0p2 > /dev/null
 	echo "done"
 	mount /sddata
-	echo -n "Dumping ext2 partition..."
+	echo -n "ext2: Dumping..."
 	CW2=$PWD
 	cd /sddata
 	tar -cvf $DESTDIR/ext2.tar ./ > /dev/null
@@ -409,11 +427,11 @@ if [ $BKP_EXT2 -eq 1 ]; then
 	echo "done"
 	
 	#generate the md5 sum
-	echo -n "Generating MD5 sum..."
+	echo -n "ext2: Generating MD5..."
 	md5sum ext2.tar > ext2.md5
 	echo "done"
 else
-	echo "Dump of the ext2 partition suppressed."
+	echo "ext2: Skipping."
 fi
 
 

@@ -294,12 +294,15 @@ try_update_binary(const char *path, ZipArchive *zip)
 
   char buffer[1024];
   FILE* from_child = fdopen(pipefd[0], "r");
+  
+  ui_set_progress(0.0);
+  
   while (fgets(buffer, sizeof(buffer), from_child) != NULL) 
   {
     char* command = strtok(buffer, " \n");
     if (command == NULL) 
     	continue;
-   	else if (strcmp(command, "show_progress") == 0) 
+   	else if (strcmp(command, "progress") == 0) 
    	{
       char* fraction_s = strtok(NULL, " \n");
       char* seconds_s = strtok(NULL, " \n");
@@ -307,8 +310,7 @@ try_update_binary(const char *path, ZipArchive *zip)
       float fraction = strtof(fraction_s, NULL);
       int seconds = strtol(seconds_s, NULL, 10);
 
-      ui_show_progress(fraction * (1-VERIFICATION_PROGRESS_FRACTION),
-                       seconds);
+      ui_show_progress(fraction, seconds);
     } 
     else if (strcmp(command, "set_progress") == 0) 
     {
