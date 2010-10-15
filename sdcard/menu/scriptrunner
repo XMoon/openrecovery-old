@@ -1,6 +1,0 @@
-#!/sbin/sh
-
-# $1 is the menu file, $2 - $# is the command
-export MENU_FILE=$1
-shift 1
-$@
