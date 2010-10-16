@@ -23,7 +23,7 @@ Mod version:
 - Location of default.prop file:
 * MILESTONE: in the 2ndinit.SHOLS folder in the OpenRecovery folder
 * SHOLES TABLET: in the lite recovery image
-* MILESTONE XT720: in the
+* MILESTONE XT720: in the bootstrap
 
 ===============================================================================
 OR update.zip format:
