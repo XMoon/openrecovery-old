@@ -32,7 +32,6 @@
 #include <private/android_filesystem_config.h>
 #include <linux/capability.h>
 #include <linux/prctl.h>
-#include "envfix.h"
 #else
 #include "usb_vendors.h"
 #endif
@@ -839,9 +838,6 @@ int adb_main(int is_daemon, int server_port)
     int secure = 0;
     int port;
     char value[PROPERTY_VALUE_MAX];
-    
-    //reinit env variables here
-    fix_enviroment("/etc/env");
     
 #endif
 

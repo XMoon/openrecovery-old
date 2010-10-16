@@ -46,19 +46,15 @@ if [ $NOCUST -eq 0 ]; then
 	chmod 0755 /cust
 fi
 
-#enviroment override
-cp -f /sdcard/OpenRecovery/etc/env /etc/env
-chmod 0644 /etc/env
-
 #fstab
-cp -f "/sdcard/OpenRecovery/etc/fstab."$1 /etc/fstab
+cp -f "/sdcard/OpenRecovery/etc/fstab.$1" /etc/fstab
 chmod 0644 /etc/fstab
 
 cp -f /sdcard/OpenRecovery/etc/mtab /etc/mtab
 chmod 0644 /etc/mtab
 
 #profile
-cp -f "/sdcard/OpenRecovery/etc/profile."$1 /etc/profile
+cp -f "/sdcard/OpenRecovery/etc/profile.$1" /etc/profile
 chmod 0644 /etc/profile
 
 #our little timezone hack
@@ -176,16 +172,13 @@ if [ -b /dev/block/mmcblk0p2 ]; then
 	e2fsck -p /dev/block/mmcblk0p2 
 fi
 
-#enable adbd
-/bin/adbd_stop.sh
-/bin/enable_adb_usbmode.sh
-/bin/adbd_start.sh
-
 #res - read the theme first
 rm -fR /res
 
 if [ -f /sdcard/OpenRecovery/etc/theme ]; then
 	cp -f /sdcard/OpenRecovery/etc/theme /etc/theme
+	chmod 0644 /etc/theme
+	
 	THEME=`awk 'NR==1' /etc/theme`
 	
 	if [ -d /sdcard/OpenRecovery/$THEME ]; then
@@ -219,6 +212,50 @@ cp -fR /sdcard/OpenRecovery/tags/ /
 cp -f "/sdcard/OpenRecovery/sbin/open_rcvr."$1 /sbin/recovery
 chmod 0755 /sbin/recovery
 
-RPID=`ps | grep /sbin/recovery | awk '{print $1}'`
-echo "kill process $RPID..."
-kill -9 $RPID
+#Check if we are supposed to call 2nd-init 
+if [ ! -f /etc/reinit ] && [ -d "/sdcard/OpenRecovery/2ndinit.$1" ]; then
+	DIR="/sdcard/OpenRecovery/2ndinit.$1"
+	
+	cp -f "$DIR/default.prop" /default.prop
+	chmod 0644 /default.prop
+	
+	cp -f "$DIR/init" /init
+	chmod 0755 init
+	
+	cp -f "$DIR/init.rc" /init.rc
+	chmod 0755 init.rc
+							
+	#2nd-init, and don't wait for it (2nd-init waits for interupt)
+	/sdcard/OpenRecovery/sbin/2nd-init &
+	
+	#TODO: patch the 2nd init instance to kill every process prior to early-init
+	
+	#HACK: this is a nasty hack :)
+	#WARN: racy conditions here
+	#TODO: this should be in init.rc
+	
+	#restart adbd
+	/bin/adbd_stop.sh
+	/bin/enable_adb_usbmode.sh
+	
+	#start adbd from the new init
+	/bin/adbd_start.sh
+	
+	#Get the PID of the recovery
+	RPID=`ps | grep /sbin/recovery | awk '{print $1}'`
+	
+	#kill recovery
+	kill -9 $RPID
+		
+else
+	
+	#enable adbd
+	/bin/adbd_stop.sh
+	/bin/enable_adb_usbmode.sh
+	/bin/adbd_start.sh
+
+	#kill the recovery binary
+	RPID=`ps | grep /sbin/recovery | awk '{print $1}'`
+	kill -9 $RPID
+	
+fi

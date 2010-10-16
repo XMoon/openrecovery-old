@@ -43,10 +43,6 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
-#if !OPEN_RCVR_VERSION_LITE
-#include "envfix.h"
-#endif
-
 /*
  * The recovery tool communicates with the main system through /cache files.
  *   /cache/recovery/command - INPUT - command line for tool, one arg per line
@@ -159,17 +155,19 @@ static const char *FULL_PACKAGE_FILE = "SDCARD:OpenRecovery.zip";
 static const char *TEMPORARY_LOG_FILE = "/tmp/open_recovery.log";
 
 //yeah, CamelCase fail
-static char* MENU_TITLE[] = {	"Motorola "OPEN_RECOVERY_PHONE" Open Recovery",
-																"Version "OPEN_RECOVERY_VERSION,
-																"Created by Skrilax_CZ",
-																"",
-																OPEN_RECOVERY_NAVIG,
+static char* BASE_MENU_TITLE[] = {	"Motorola "OPEN_RECOVERY_PHONE" Open Recovery",
+																		"Version "OPEN_RECOVERY_VERSION,
+																		"Created by Skrilax_CZ",
+																		"",
+																		OPEN_RECOVERY_NAVIG,
 #ifdef OPEN_RECOVERY_NAVIG2
-																OPEN_RECOVERY_NAVIG2,
+																		OPEN_RECOVERY_NAVIG2,
 #endif
-																"",
-																NULL };
+																		"",
+																		NULL };
 
+//allow mod header, mod version
+static char** MENU_TITLE;
 
 static char* MENU_HEADERS[MAX_MENU_ITEMS] = { NULL };
 static char* MENU_ITEMS[MAX_MENU_ITEMS] = { NULL };
@@ -396,7 +394,7 @@ prepend_title(char** headers, int* title_length)
 }
 
 static int
-get_menu_selection(char** headers, char** items, int title_length, int start_sel, int menu_only) 
+get_menu_selection(char** headers, char** items, int title_length, int start_sel, int menu_only, int ignore_selectability) 
 {
   // throw away keys pressed previously, so user doesn't
   // accidentally trigger menu items.
@@ -436,12 +434,13 @@ get_menu_selection(char** headers, char** items, int title_length, int start_sel
             if (selected < 0)
             	selected = num_items - 1;
             	
-            if (MENU_ITEMS_SELECTABLE[selected])
+            if (ignore_selectability || MENU_ITEMS_SELECTABLE[selected])
             	break;
            }
           
           selected = ui_menu_select(selected);
           break;
+          
         case HIGHLIGHT_DOWN:
       		while(1)
           {
@@ -451,15 +450,17 @@ get_menu_selection(char** headers, char** items, int title_length, int start_sel
             if (selected >= num_items)
             	selected = 0;
             	
-         		if (MENU_ITEMS_SELECTABLE[selected])
+         		if (ignore_selectability || MENU_ITEMS_SELECTABLE[selected])
             	break;
           }
           
           selected = ui_menu_select(selected);
           break;
+          
         case SELECT_ITEM:
           chosen_item = selected;
           break;
+          
         case NO_ACTION:
           break;
       }
@@ -512,7 +513,7 @@ wipe_data(int confirm)
                       " No",
                       NULL };
 
-    int chosen_item = get_menu_selection(title_headers, items, title_length, 0, 1);
+    int chosen_item = get_menu_selection(title_headers, items, title_length, 0, 1, 1);
     hide_menu_selection();
     if (chosen_item != 7) {
         return;
@@ -793,7 +794,7 @@ int show_interactive_menu(char** headers, char** items)
 	char** title;
 	
 	title = prepend_title(headers, &title_length);
-	int chosen_item = get_menu_selection(title, items, title_length, 0, 1);
+	int chosen_item = get_menu_selection(title, items, title_length, 0, 1, 1);
   hide_menu_selection();
   free(title);
   return chosen_item + 1;
@@ -859,11 +860,11 @@ prompt_and_wait()
 		
 		if (override_initial_selection != -1)
 		{
-			menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, override_initial_selection, 0);
+			menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, override_initial_selection, 0, 0);
 			override_initial_selection = -1;
 		}
 		else
-    	menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, 0, 0);
+    	menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, 0, 0, 0);
 
     // Parse open recovery commands
     int chosen_item = select_action(menu_item);
@@ -1165,40 +1166,76 @@ print_property(const char *key, const char *name, void *cookie)
 int
 main(int argc, char **argv)
 {
-	//check if we are ran by "/init"
-	char parent_process[512];
-	char parent_process_link[512];
-	
-	//yeah getppid of init is 1, but just in case if some branching is done :)
-	sprintf(parent_process_link, "/proc/%u/exe", getppid());
-	
-	size_t len;
-	if ((len = readlink(parent_process_link, parent_process, sizeof(parent_process)-1)) != 0xFFFFFFFF)
-	{
-    parent_process[len] = '\0';
-    if (strcmp(parent_process, "/init"))
-    {
-    	fprintf(stderr, "Parent process must be /init.\n"); 
-  		return EXIT_FAILURE;
-    }
-  }
-  else
+  if (getppid() != 1)
   {
-  	fprintf(stderr, "Unknown parent process.\n"); 
-  	return EXIT_FAILURE;
+  	fprintf(stderr, "Parent process must be init.\n"); 
+		return EXIT_FAILURE;
   }
   
-#if !OPEN_RCVR_VERSION_LITE
-	//reinit env variables here
-  fix_enviroment("/etc/env");
-#endif
-
 	time_t start = time(NULL);
 
 	// If these fail, there's not really anywhere to complain...
 	freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
 	freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
 	fprintf(stderr, "Starting Open Recovery on %s", ctime(&start));
+
+	//menu title
+	//lite - just the base
+	//full - look for mod
+	
+#if OPEN_RCVR_VERSION_LITE
+	MENU_TITLE = BASE_MENU_TITLE;
+#else
+	//keep'em malloced even if empty :p
+	char* mod_author = malloc(81);
+	char* mod_version = malloc(81);
+	
+	char mod_author_prop[81];
+	char mod_version_prop[81];
+	
+	property_get(MOD_AUTHOR_PROP, mod_author_prop, "");
+	property_get(MOD_VERSION_PROP, mod_version_prop, "");
+	
+	//assume there are some mod properties, leave NULL if there ain't
+	MENU_TITLE = malloc((sizeof(BASE_MENU_TITLE) + 3) * sizeof(char*));
+	memset(MENU_TITLE, 0, (sizeof(BASE_MENU_TITLE) + 3) * sizeof(char*));
+	
+	char** b = BASE_MENU_TITLE;
+	char** m = MENU_TITLE;
+	while (*b)
+	{
+		*m = *b;
+		m++;
+		b++;
+	}
+	
+	//append "" if one of the props exist
+	int append_empty = 0;	
+	
+	if (mod_author_prop[0] != '\0')
+	{
+		//mod version only if mod author
+		if (mod_version_prop[0] != '\0')
+		{
+			snprintf(mod_version, 80, MOD_VERSION_BASE, mod_version_prop);
+			*m = mod_version;
+			m++;
+		}
+
+		snprintf(mod_author, 80, MOD_AUTHOR_BASE, mod_author_prop);
+		*m = mod_author;
+		m++;
+		append_empty = 1;
+	}		
+			
+	if (append_empty)
+	{
+		*m = malloc(1);
+		(*m)[0] = '\0';
+		m++;
+	}
+	
+#endif
 
 	ui_init();
 

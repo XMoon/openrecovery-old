@@ -9,6 +9,7 @@
 #include <linux/user.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 union u 
 {
@@ -25,9 +26,10 @@ void getdata(pid_t child, long addr, char *str, int len)
 	i = 0;
 	j = len / sizeof(long);
 	laddr = str;
+	
 	while(i < j) 
 	{
-		data.val = ptrace(PTRACE_PEEKDATA, child, (void*)(addr + i * 4), NULL);
+		data.val = ptrace(PTRACE_PEEKDATA, child, (void*)(addr + i * 4), NULL);	
 		memcpy(laddr, data.chars, sizeof(long));
 		++i;
 		laddr += sizeof(long);
@@ -41,7 +43,7 @@ void getdata(pid_t child, long addr, char *str, int len)
 		memcpy(laddr, data.chars, j);
 	}
 	
-	str[len] = '\0';       
+	str[len] = '\0';   
 }
 
 void putdata(pid_t child, long addr, char *str, int len)
@@ -148,12 +150,25 @@ int main(int argc, char** argv)
 	
 	//init has pid always 1
 	memset(&regs, 0, sizeof(regs));
-	ptrace(PTRACE_ATTACH, 1, NULL, NULL);
+	if (ptrace(PTRACE_ATTACH, 1, NULL, NULL))
+	{
+		printf("ERROR: Couldn't attach to /init.\n");
+		return 1;
+	}
 	
 	//wait for interrupt
 	wait(NULL);
 
 	ptrace(PTRACE_GETREGS, 1, NULL, &regs);
+	
+	//check if PC is valid
+	if (regs.ARM_pc == 0)
+	{
+		printf("ERROR: Could get PC register value.\n");
+		return 1;
+	}
+	
+	printf("/init PC is on: 0x%08lX.\n", regs.ARM_pc);
 	
 	//structure of init is (static executable!)
 	//0x8000 image base (usually)
@@ -189,16 +204,18 @@ int main(int argc, char** argv)
 	
 	if (image_base == 0 || image_size == 0)
 	{
-		printf("Error, couldn't get the image base of /init.\n");
+		printf("ERROR: Couldn't get the image base of /init.\n");
+		printf("Detaching...\n");
+		ptrace(PTRACE_DETACH, 1, NULL, NULL);
 		return 1;
 	}
 	
 	printf("image_base: 0x%08lX.\n", image_base);
 	printf("image_size: 0x%08lX.\n", image_size);
 	
-	char* init_image = malloc(image_size);
+	char* init_image = malloc(image_size+1);
 	getdata(1, image_base, init_image, image_size);
-	
+		
 	//now look for the bytes
 	long c,d;
 	char execve_code[] = {	0x90, 0x00, 0x2D, 0xE9,
@@ -233,7 +250,9 @@ int main(int argc, char** argv)
 	
 	if (!execve_address)
 	{
-		printf("Failed locating execve.\n");
+		printf("ERROR: Failed locating execve.\n");
+		printf("Detaching...\n");
+		ptrace(PTRACE_DETACH, 1, NULL, NULL);
 		return 5;
 	}
 	

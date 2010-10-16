@@ -16,6 +16,16 @@ Changing a theme:
 - "Theme" menu under settings menu. New theme folder are must be prefixed with "res."
 
 ===============================================================================
+Mod version:
+===============================================================================
+
+- "ro.or.mod.author" and "ro.or.mod.version" properties in default.prop are read and parsed to specify mod author and mod version
+- Location of default.prop file:
+* MILESTONE: in the 2ndinit.SHOLS folder in the OpenRecovery folder
+* SHOLES TABLET: in the lite recovery image
+* MILESTONE XT720: in the
+
+===============================================================================
 OR update.zip format:
 ===============================================================================
 

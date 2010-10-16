@@ -3,11 +3,12 @@
 echo "Keyboard Layout Settings" > "$MENU_FILE"
 echo "Go Back:menu:.." >> "$MENU_FILE"
 
-if [ -d /sdcard/OpenRecovery/keychars ]
-then
- cd /sdcard/OpenRecovery/keychars
- for files in $( ls -c . )
- do
-  echo "$files:shell:change_keyboard_layout.sh $files" >> "$MENU_FILE"
- done
+KBD_DIR=/sdcard/OpenRecovery/keychars
+
+if [ -d "$KBD_DIR" ]; then
+	for DIR in "$KBD_DIR"/*
+ 	do
+ 		BASE_DIR=`basename "$DIR"`
+  	echo "$BASE_DIR:shell:change_keyboard_layout.sh $BASE_DIR" >> "$MENU_FILE"
+	done
 fi

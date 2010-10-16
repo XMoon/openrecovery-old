@@ -35,7 +35,7 @@
 #define EXPAND(x) STRINGIFY(x)
 
 //Open Recovery Version
-#define OPEN_RECOVERY_VERSION_BASE "1.43"
+#define OPEN_RECOVERY_VERSION_BASE "1.44"
 
 //phone versions
 #if OPEN_RCVR_SHOLS
@@ -94,7 +94,11 @@
 #define MAX_ARGS 100
 #define ARGC_NUM	20
 
+#define MOD_AUTHOR_PROP "ro.or.mod.author"
+#define MOD_VERSION_PROP "ro.or.mod.version"
 
+#define MOD_AUTHOR_BASE "Mod Created by %s"
+#define MOD_VERSION_BASE "Mod Version %s"
 
 // Initialize the graphics system.
 void ui_init();

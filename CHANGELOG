@@ -1,4 +1,17 @@
 ================
+Version 1.44
+================
+Features
+- possibility to specify mod author and mod version
+
+Changes
+- uses 2nd-init (relatively ugly and volatile code here, in mod versions don't play with this section much)
+
+Bugfixes
+- fixed keyboard layout change
+- fixed imenu not having some items selectable 
+
+================
 Version 1.43
 ================
 Changes
@@ -6,7 +19,7 @@ Changes
 
 Bugfixes
 - nandroid not erasing userdata partition on restore fixed
-- restoration of binary parition fixed
+- nandroid not flasing binary partitions on restore fixed
 
 ================
 Version 1.42

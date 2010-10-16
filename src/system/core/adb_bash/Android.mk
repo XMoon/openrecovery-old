@@ -146,11 +146,11 @@ LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT_SBIN)
 LOCAL_UNSTRIPPED_PATH := $(TARGET_ROOT_OUT_SBIN_UNSTRIPPED)
 
 ifeq ($(TARGET_SIMULATOR),true)
-  LOCAL_STATIC_LIBRARIES := libcutils libenvfix
+  LOCAL_STATIC_LIBRARIES := libcutils
   LOCAL_LDLIBS += -lpthread
   include $(BUILD_HOST_EXECUTABLE)
 else
-  LOCAL_STATIC_LIBRARIES := libcutils libenvfix libc
+  LOCAL_STATIC_LIBRARIES := libcutils libc
   include $(BUILD_EXECUTABLE)
 endif
 
