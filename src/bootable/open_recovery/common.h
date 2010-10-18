@@ -35,7 +35,7 @@
 #define EXPAND(x) STRINGIFY(x)
 
 //Open Recovery Version
-#define OPEN_RECOVERY_VERSION_BASE "1.44"
+#define OPEN_RECOVERY_VERSION_BASE "1.45"
 
 //phone versions
 #if OPEN_RCVR_SHOLS

@@ -96,11 +96,12 @@ MAIN_MENU_FILE=/menu/init.menu
 echo "Main Menu" > "$MAIN_MENU_FILE"
 echo "Reboot System:reboot:*" >> "$MAIN_MENU_FILE"
 echo "Settings:menu:settings.menu" >> "$MAIN_MENU_FILE"
+echo "USB Mass Storage Mode:shell:usb_mass_storage.sh" >> "$MAIN_MENU_FILE"
 
 if [ $TABLET -eq 0 ]; then
 	echo "Console:console:*" >> "$MAIN_MENU_FILE"
 fi	
-	
+
 echo "Nandroid:menu:nand.menu" >> "$MAIN_MENU_FILE"
 echo "Application Menu:menu:app.menu" >> "$MAIN_MENU_FILE"
 echo "Root Phone:shell:root.sh" >> "$MAIN_MENU_FILE"

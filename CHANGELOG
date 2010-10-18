@@ -1,8 +1,14 @@
 ================
+Version 1.45
+================
+Features
+- added USB Mass Storage Mode
+
+================
 Version 1.44
 ================
 Features
-- possibility to specify mod author and mod version
+- possibility to specify mod author and mod version (see the NOTES how to do that)
 
 Changes
 - uses 2nd-init (relatively ugly and volatile code here, in mod versions don't play with this section much)
