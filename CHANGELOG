@@ -10,6 +10,7 @@ Changes
 - Open Recovery console always have bash with colors
 - cyanogenmod bash and busybox used
 - modules are under kernel version directory
+- nandroid updated to work with bootstrap version
 
 Bugfixes
 - cleanup
