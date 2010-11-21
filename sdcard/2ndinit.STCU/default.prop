@@ -20,11 +20,11 @@ ro.build.type=user
 ro.build.user=milestcm
 ro.build.host=il93lnxgbld02
 ro.build.tags=rel-keys
-ro.product.model=umts
-ro.product.brand=OR_STCU
-ro.product.name=OR_STCU
-ro.product.device=OR_STCU
-ro.product.board=OR_STCU
+ro.product.model=XT701
+ro.product.brand=Unicom
+ro.product.name=choles
+ro.product.device=choles
+ro.product.board=choles
 ro.product.cpu.abi=armeabi
 ro.product.manufacturer=motorola
 ro.product.locale.language=en
@@ -32,7 +32,7 @@ ro.product.locale.region=US
 ro.wifi.channels=
 ro.board.platform=omap3
 # ro.build.product is obsolete; use ro.product.device
-ro.build.product=OR_STCU
+ro.build.product=choles
 # end build properties
 #
 # system.prop for UMTS Sholes
