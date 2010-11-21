@@ -3,18 +3,18 @@ Steps to install:
 - copy the correct zip file (see phones) from the zip folder to the root of the sdcard
 - on XT701, flash the lite version image (inside zips folder)
 - on MILESTONE, flash the vulnerable recovery SBF file (inside zips folder)
-- if you're using bootstrap version, see the INSTALL in bootstrap folder
+- on MILESTONE XT720, run in root shell "install_script.sh STR" inside the "OpenRecovery/orbootstrap" folder
 
 Phones:
 SHOLS is for Motorola Milestone (using vulnerable recovery)
 STCU is for Motorola Sholes Tablet XT701
+STR is for Motorola Milestone XT720
 
 Phones using the bootstrap version:
-SHOLS is for Motorola Milestone (only for development)
 STR is for Motorola Milestone XT720
 
 Automatic booting into Open Recovery on Motorola Milestone:
-!!! THIS WILL PREVENT FROM AUTOMATIC APPLIANCE OF AN OTA UPDATE !!!
+!!! THIS WILL PREVENT FROM AUTOMATIC APPLIANCE OF STOCK OTA UPDATES !!!
 - ensure the script inside the zip folder is called on startup when booting normally (sh hijack, or inside mot_boot_mode)
 - reboot into recovery and boot Open Recovery manually
 - on next reboot into recovery, Open Recovery will be booted automatically

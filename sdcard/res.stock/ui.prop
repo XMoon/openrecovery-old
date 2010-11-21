@@ -10,8 +10,8 @@ color32.script=#FFFF00FF
 color24.console.header=#FFFF00
 color24.console.background=#000000
 color24.console.front=#E5E5E5
-termansicolor.console.name=32
-termansicolor.console.path=33
+termansicolor.console.name=31
+termansicolor.console.path=34
 
 #Console terminal colors
 color24.console.termclr30=#000000

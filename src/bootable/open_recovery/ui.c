@@ -1804,6 +1804,42 @@ console_unescape()
 				was_unescaped = 1;		
 				break;
 				
+			//clear from cursor cursor	
+			case 'K':	
+				if (parameters[0] == 0)
+				{
+					for (j = console_cur_column; j < (console_screen_columns - 1); j++)
+					{
+						console_text[console_cur_row][j] = ' ';
+						console_text_color[console_cur_row][j].r = 0;
+						console_text_color[console_cur_row][j].g = 0;
+						console_text_color[console_cur_row][j].b = 0;
+					}
+				}
+				else if (parameters[0] == 1)
+				{
+					for (j = 0; j <= console_cur_column; j++)
+					{
+						console_text[console_cur_row][j] = ' ';
+						console_text_color[console_cur_row][j].r = 0;
+						console_text_color[console_cur_row][j].g = 0;
+						console_text_color[console_cur_row][j].b = 0;
+					}
+				}
+				else if (parameters[0] == 2)
+				{
+					for (j = 0; j < (console_screen_columns - 1); j++)
+					{
+						console_text[console_cur_row][j] = ' ';
+						console_text_color[console_cur_row][j].r = 0;
+						console_text_color[console_cur_row][j].g = 0;
+						console_text_color[console_cur_row][j].b = 0;
+					}
+				}
+			
+				was_unescaped = 1;	
+				break;
+				
 			//======================================================================
 			// LOWERCASE
 			//======================================================================

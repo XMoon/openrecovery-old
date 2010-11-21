@@ -68,7 +68,8 @@ static RootInfo g_roots[] = {
 };
 #define NUM_ROOTS (sizeof(g_roots) / sizeof(g_roots[0]))
 
-// TODO: for SDCARD:, try /dev/block/mmcblk0 if mmcblk0p1 fails
+//whether the mmcblkp01 is mounted via USB mass storage
+static int sdcard_mass_storage = 0;
 
 static const RootInfo *
 get_root_info_for_path(const char *root_path)
@@ -404,42 +405,64 @@ device_node_exists(const char *root_path)
 	return 0;
 }
 
-//sdcard + yaffs2 partitions
-void ensure_common_roots_mounted()
+static int
+device_mount_point_exists(const char *root_path)
 {
-	ensure_root_path_mounted("SDCARD:");
-	
-	//check for ext2
-	if (device_node_exists("SDDATA:"))
-		ensure_root_path_mounted("SDDATA:");
-		
-	ensure_root_path_mounted("SYSTEM:");
-	ensure_root_path_mounted("DATA:");
-	ensure_root_path_mounted("CACHE:");
-	
-#if HAVE_CUST
-	ensure_root_path_mounted("CUST:");
-#endif
+	const RootInfo *info = get_root_info_for_path(root_path);
+  
+  if (info == NULL) 
+		return 0;
+  
+	struct stat stFileInfo; 
+  int intStat; 
 
-	ensure_root_path_mounted("CDROM:");
+  // Attempt to get the file attributes 
+  intStat = stat(info->mount_point, &stFileInfo); 
+  return intStat == 0;
 }
 
-void ensure_common_roots_unmounted()
+//sdcard + yaffs2 partitions
+int
+ensure_common_roots_mounted()
 {
-	ensure_root_path_unmounted("SDCARD:");
+	int result = 0;
+	result |= ensure_root_path_mounted("SDCARD:");
 	
 	//check for ext2
-	if (device_node_exists("SDDATA:"))
-		ensure_root_path_unmounted("SDDATA:");
+	if (device_node_exists("SDDATA:") && device_mount_point_exists("SDDATA:"))
+		result |= ensure_root_path_mounted("SDDATA:");
 		
-	ensure_root_path_unmounted("SYSTEM:");
-	ensure_root_path_unmounted("DATA:");
-	ensure_root_path_unmounted("CACHE:");
+	result |= ensure_root_path_mounted("SYSTEM:");
+	result |= ensure_root_path_mounted("DATA:");
+	result |= ensure_root_path_mounted("CACHE:");
 	
 #if HAVE_CUST
-	ensure_root_path_unmounted("CUST:");
+	result |= ensure_root_path_mounted("CUST:");
 #endif
 
-	ensure_root_path_unmounted("CDROM:");
+	result |= ensure_root_path_mounted("CDROM:");
+	return result;
+}
+
+int
+ensure_common_roots_unmounted()
+{
+	int result = 0;
+
+	result |= ensure_root_path_unmounted("SDCARD:");
+	
+	//check for ext2
+	if (device_node_exists("SDDATA:") && device_mount_point_exists("SDDATA:"))
+		result |= ensure_root_path_unmounted("SDDATA:");
+		
+	result |= ensure_root_path_unmounted("SYSTEM:");
+	result |= ensure_root_path_unmounted("DATA:");
+	
+#if HAVE_CUST
+	result |= ensure_root_path_unmounted("CUST:");
+#endif
+
+	result |= ensure_root_path_unmounted("CDROM:");
+	return result;
 }
 

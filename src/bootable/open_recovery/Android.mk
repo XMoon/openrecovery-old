@@ -282,7 +282,7 @@ LOCAL_STATIC_LIBRARIES += libstdc++ libc
 
 include $(BUILD_EXECUTABLE)
 
-include $(commands_recovery_local_path)/bootstrap/Android.mk
+include $(commands_recovery_local_path)/btsh/Android.mk
 include $(commands_recovery_local_path)/minui/Android.mk
 include $(commands_recovery_local_path)/minzip/Android.mk
 include $(commands_recovery_local_path)/mtdutils/Android.mk
@@ -291,6 +291,7 @@ include $(commands_recovery_local_path)/tools/Android.mk
 include $(commands_recovery_local_path)/edify/Android.mk
 include $(commands_recovery_local_path)/imenu/Android.mk
 include $(commands_recovery_local_path)/updater/Android.mk
+include $(commands_recovery_local_path)/applypatch/Android.mk
 
 commands_recovery_local_path :=
 

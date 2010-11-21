@@ -1,25 +1,35 @@
 #!/sbin/bash
 
+export PATH="$PATH:/bin"
+
 # arguments
 # $1 the phone suffix
 #
 # SHOLS - Milestone (A853, XT702)
 # STCU  - Sholes Tablet (XT701)
-# STR		- Milestone XT720 (XT720)
-# TITA  - Titanium (XT800)
+# STR   - Milestone XT720 (XT720)
+# JRD   - Defy (MB525) - not implemented yet
+# STAB  - Milestone 2 (A953) - not implemented yet
 
 #flags
 #===============================================================================
 
+INSTALL_COMMAND=0
+EMMC=0
+
 if [ "$1" == "STCU" ]; then
 	NOCUST=1
-	INSTALL_COMMAND=0
 else
 	NOCUST=0
 	
 	if [ "$1" == "SHOLS" ]; then
 		INSTALL_COMMAND=1
 	fi
+fi
+
+if [ "$1" == "JRD" ]; then
+	NOCUST=1
+	EMMC=1
 fi
 
 #post-installation
@@ -53,9 +63,18 @@ chmod 0644 /etc/fstab
 cp -f /sdcard/OpenRecovery/etc/mtab /etc/mtab
 chmod 0644 /etc/mtab
 
-#profile
-cp -f "/sdcard/OpenRecovery/etc/profile.$1" /etc/profile
-chmod 0644 /etc/profile
+#bash etc
+mkdir /etc/bash
+chmod 0644 /etc/bash
+
+cp -f "/sdcard/OpenRecovery/etc/bash/bashrc.$1" /etc/bash/bashrc
+chmod 0644 /etc/bash/bashrc
+
+#bash - check if colors are disabled
+if [ -f /sdcard/OpenRecovery/etc/bash/.nobashcolors ]; then
+	cp -f /sdcard/OpenRecovery/etc/bash/.nobashcolors /etc/bash/.nobashcolors
+	chmod 0644 /etc/bash/.nobashcolors
+fi
 
 #our little timezone hack
 cp -f /sdcard/OpenRecovery/etc/timezone /etc/timezone
@@ -66,38 +85,42 @@ cp -f /sdcard/OpenRecovery/etc/keyboard /etc/keyboard
 chmod 0644 /etc/keyboard
 
 # Patch fstab
-MTDBLOCK_SYSTEM=$(/sbin/cat /proc/mtd | /sbin/grep "system")
-MTDBLOCK_SYSTEM=${MTDBLOCK_SYSTEM%%:*}
-MTDBLOCK_SYSTEM=${MTDBLOCK_SYSTEM##mtd}
-MTDBLOCK_SYSTEM="\/dev\/block\/mtdblock$MTDBLOCK_SYSTEM"
+if [ $EMMC -eq 0 ]; then
 
-MTDBLOCK_DATA=$(/sbin/cat /proc/mtd | /sbin/grep "userdata")
-MTDBLOCK_DATA=${MTDBLOCK_DATA%%:*}
-MTDBLOCK_DATA=${MTDBLOCK_DATA##mtd}
-MTDBLOCK_DATA="\/dev\/block\/mtdblock$MTDBLOCK_DATA"
-
-MTDBLOCK_CDROM=$(/sbin/cat /proc/mtd | /sbin/grep "cdrom")
-MTDBLOCK_CDROM=${MTDBLOCK_CDROM%%:*}
-MTDBLOCK_CDROM=${MTDBLOCK_CDROM##mtd}
-MTDBLOCK_CDROM="\/dev\/block\/mtdblock$MTDBLOCK_CDROM"
-
-MTDBLOCK_CACHE=$(/sbin/cat /proc/mtd | /sbin/grep "cache")
-MTDBLOCK_CACHE=${MTDBLOCK_CACHE%%:*}
-MTDBLOCK_CACHE=${MTDBLOCK_CACHE##mtd}
-MTDBLOCK_CACHE="\/dev\/block\/mtdblock$MTDBLOCK_CACHE"
-
-sed -i "s/MTDBLOCKSYSTEM/$MTDBLOCK_SYSTEM/g" /etc/fstab
-sed -i "s/MTDBLOCKDATA/$MTDBLOCK_DATA/g" /etc/fstab
-sed -i "s/MTDBLOCKCDROM/$MTDBLOCK_CDROM/g" /etc/fstab
-sed -i "s/MTDBLOCKCACHE/$MTDBLOCK_CACHE/g" /etc/fstab
-
-if [ $NOCUST -eq 0 ]; then
-	MTDBLOCK_CUST=$(/sbin/cat /proc/mtd | /sbin/grep "cust")
-	MTDBLOCK_CUST=${MTDBLOCK_CUST%%:*}
-	MTDBLOCK_CUST=${MTDBLOCK_CUST##mtd}
-	MTDBLOCK_CUST="\/dev\/block\/mtdblock$MTDBLOCK_CUST"
+	MTDBLOCK_SYSTEM=$(/sbin/cat /proc/mtd | /sbin/grep "system")
+	MTDBLOCK_SYSTEM=${MTDBLOCK_SYSTEM%%:*}
+	MTDBLOCK_SYSTEM=${MTDBLOCK_SYSTEM##mtd}
+	MTDBLOCK_SYSTEM="\/dev\/block\/mtdblock$MTDBLOCK_SYSTEM"
 	
-	sed -i "s/MTDBLOCKCUST/$MTDBLOCK_CUST/g" /etc/fstab
+	MTDBLOCK_DATA=$(/sbin/cat /proc/mtd | /sbin/grep "userdata")
+	MTDBLOCK_DATA=${MTDBLOCK_DATA%%:*}
+	MTDBLOCK_DATA=${MTDBLOCK_DATA##mtd}
+	MTDBLOCK_DATA="\/dev\/block\/mtdblock$MTDBLOCK_DATA"
+	
+	MTDBLOCK_CDROM=$(/sbin/cat /proc/mtd | /sbin/grep "cdrom")
+	MTDBLOCK_CDROM=${MTDBLOCK_CDROM%%:*}
+	MTDBLOCK_CDROM=${MTDBLOCK_CDROM##mtd}
+	MTDBLOCK_CDROM="\/dev\/block\/mtdblock$MTDBLOCK_CDROM"
+	
+	MTDBLOCK_CACHE=$(/sbin/cat /proc/mtd | /sbin/grep "cache")
+	MTDBLOCK_CACHE=${MTDBLOCK_CACHE%%:*}
+	MTDBLOCK_CACHE=${MTDBLOCK_CACHE##mtd}
+	MTDBLOCK_CACHE="\/dev\/block\/mtdblock$MTDBLOCK_CACHE"
+	
+	sed -i "s/MTDBLOCKSYSTEM/$MTDBLOCK_SYSTEM/g" /etc/fstab
+	sed -i "s/MTDBLOCKDATA/$MTDBLOCK_DATA/g" /etc/fstab
+	sed -i "s/MTDBLOCKCDROM/$MTDBLOCK_CDROM/g" /etc/fstab
+	sed -i "s/MTDBLOCKCACHE/$MTDBLOCK_CACHE/g" /etc/fstab
+	
+	if [ $NOCUST -eq 0 ]; then
+	
+		MTDBLOCK_CUST=$(/sbin/cat /proc/mtd | /sbin/grep "cust")
+		MTDBLOCK_CUST=${MTDBLOCK_CUST%%:*}
+		MTDBLOCK_CUST=${MTDBLOCK_CUST##mtd}
+		MTDBLOCK_CUST="\/dev\/block\/mtdblock$MTDBLOCK_CUST"
+		
+		sed -i "s/MTDBLOCKCUST/$MTDBLOCK_CUST/g" /etc/fstab
+	fi
 fi
 
 #terminfo
@@ -164,12 +187,29 @@ mkdir /lib
 cp -fR /sdcard/OpenRecovery/lib/ /
 chmod -R 0644 /lib
 
-#ext2 partition on sdcard
-if [ -b /dev/block/mmcblk0p2 ]; then
-	mkdir /sddata
-	insmod /lib/modules/ext2.ko
-	echo "/dev/block/mmcblk0p2          /sddata         ext2            defaults        0 0" >> /etc/fstab
-	e2fsck -p /dev/block/mmcblk0p2 
+#chek linux version
+LVER=`uname -r | awk '{split($0,a,"-"); print a[1]}'`
+
+#modules
+if [ -d "/lib/modules/$LVER" ]; then
+
+	#ext2.ko
+	MODPATH="/lib/modules/$LVER"
+
+	#ext2 partition on sdcard
+	if [ -b /dev/block/mmcblk0p2 ] && [ -f "$MODPATH/ext2.ko" ]; then
+		mkdir /sddata
+		insmod "$MODPATH/ext2.ko"
+		echo "/dev/block/mmcblk0p2          /sddata         ext2            defaults        0 0" >> /etc/fstab
+		e2fsck -p /dev/block/mmcblk0p2 
+	fi
+	
+	#partitions
+	PARTITIONS_MODULE="$MODPATH/part-$1.ko"
+	if [ -f /etc/bootstrap ] && [ -f "$PARTITIONS_MODULE" ]; then		
+		insmod "$PARTITIONS_MODULE"
+	fi
+
 fi
 
 #res - read the theme first
@@ -212,50 +252,25 @@ cp -fR /sdcard/OpenRecovery/tags/ /
 cp -f "/sdcard/OpenRecovery/sbin/open_rcvr."$1 /sbin/recovery
 chmod 0755 /sbin/recovery
 
-#Check if we are supposed to call 2nd-init 
-if [ ! -f /etc/reinit ] && [ -d "/sdcard/OpenRecovery/2ndinit.$1" ]; then
+#Check if we are supposed to call 2nd-init or just restart the binaries
+if [ -d "/sdcard/OpenRecovery/2ndinit.$1" ]; then
 	DIR="/sdcard/OpenRecovery/2ndinit.$1"
 	
 	cp -f "$DIR/default.prop" /default.prop
 	chmod 0644 /default.prop
-	
-	cp -f "$DIR/init" /init
-	chmod 0755 init
-	
+		
 	cp -f "$DIR/init.rc" /init.rc
 	chmod 0755 init.rc
 							
-	#2nd-init, and don't wait for it (2nd-init waits for interupt)
-	/sdcard/OpenRecovery/sbin/2nd-init &
+	#2nd-init (new init script will kill old adb and recovery)
+	#don't use exec, the primary recovery would finish too soon
+	/sdcard/OpenRecovery/sbin/2nd-init
 	
-	#TODO: patch the 2nd init instance to kill every process prior to early-init
-	
-	#HACK: this is a nasty hack :)
-	#WARN: racy conditions here
-	#TODO: this should be in init.rc
-	
-	#restart adbd
-	/bin/adbd_stop.sh
-	/bin/enable_adb_usbmode.sh
-	
-	#start adbd from the new init
-	/bin/adbd_start.sh
-	
-	#Get the PID of the recovery
-	RPID=`ps | grep /sbin/recovery | awk '{print $1}'`
-	
-	#kill recovery
-	kill -9 $RPID
-		
+	#sleep until the sleep is killed or timeout one minute
+	sleep 60	
 else
 	
-	#enable adbd
-	/bin/adbd_stop.sh
-	/bin/enable_adb_usbmode.sh
-	/bin/adbd_start.sh
-
-	#kill the recovery binary
-	RPID=`ps | grep /sbin/recovery | awk '{print $1}'`
-	kill -9 $RPID
+	#just call post_switch.sh
+	post_switch.sh
 	
 fi

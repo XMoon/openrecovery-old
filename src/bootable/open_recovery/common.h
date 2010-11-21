@@ -35,7 +35,7 @@
 #define EXPAND(x) STRINGIFY(x)
 
 //Open Recovery Version
-#define OPEN_RECOVERY_VERSION_BASE "1.45"
+#define OPEN_RECOVERY_VERSION_BASE "1.46"
 
 //phone versions
 #if OPEN_RCVR_SHOLS
@@ -83,11 +83,16 @@
 #endif
 
 #if OPEN_RCVR_VERSION_LITE
-#define OPEN_RECOVERY_VERSION OPEN_RECOVERY_VERSION_BASE" Lite"
+//lite version no longer displays the version tag
+#define OPEN_RECOVERY_VERSION "Lite Version"
 //override - no lite recovery has the console
+#undef OPEN_RECOVERY_HAVE_CONSOLE
 #define OPEN_RECOVERY_HAVE_CONSOLE 0
+
 #else
-#define OPEN_RECOVERY_VERSION OPEN_RECOVERY_VERSION_BASE
+
+#define OPEN_RECOVERY_VERSION "Version "OPEN_RECOVERY_VERSION_BASE
+
 #endif
 
 #define MAX_LINE_LENGTH	4096

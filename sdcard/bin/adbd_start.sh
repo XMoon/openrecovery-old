@@ -1,3 +1,0 @@
-#!/sbin/bash
-
-start adbd

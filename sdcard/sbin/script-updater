@@ -3,4 +3,4 @@
 # $1 is the updater script, $2 is the extract directory
 export PACKAGE=$2
 dos2unix -u $1
-$1
+exec $1

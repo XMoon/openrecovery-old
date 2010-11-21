@@ -1,0 +1,23 @@
+#!/usr/bin/perl -W
+
+use strict;
+use Cwd;
+
+
+my $dir = getcwd;
+
+my $usage = "repack-bootimg.pl <kernel> <ramdisk-directory> <outfile>\n";
+
+die $usage unless $ARGV[0] && $ARGV[1] && $ARGV[2];
+
+chdir $ARGV[1] or die "$ARGV[1] $!";
+
+system ("find . | cpio -o -H newc | gzip > $dir/ramdisk-repack.cpio.gz");
+
+chdir $dir or die "$ARGV[1] $!";;
+
+system ("./mkbootimg --cmdline 'console=ttyS2,115200n8 rw mem=244M\@0x80C00000 init=/init ip=off motobldlabel=none mtdparts=omap2-nand.0:128k(mbmloader),640k(mbm),640k(mbmbackup),384k(bploader),384k(cdt),1536k(pds),384k(lbl),384k(lbl_backup),384k(cid),1536k(sp),384k(devtree),640k(logo),384k(misc),3584k(boot),3840k(bpsw),4608k(recovery),8960k(cdrom),384k(unused0),179840k(system),384k(unused1),106m(cache),201856k(userdata),1536k(cust),384k(unused2),2m(kpanic),512k(rsv)' --kernel $ARGV[0] --ramdisk ramdisk-repack.cpio.gz -o $ARGV[2]");
+
+unlink("ramdisk-repack.cpio.gz") or die $!;
+
+print "\nrepacked boot image written at $ARGV[1]-repack.img\n";

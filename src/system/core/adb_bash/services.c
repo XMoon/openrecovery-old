@@ -385,13 +385,12 @@ int service_to_fd(const char *name)
         ret = create_service_thread(log_service, get_log_file_path(name + 4));
 #endif
     } else if(!HOST && !strncmp(name, "shell:", 6)) {
-    
 #if ADB_HOST
     
         if(name[6]) {
             ret = create_subprocess("/bin/bash", "-c", name + 6);
         } else {
-            ret = create_subprocess("/bin/bash", "--login", 0); //interactive
+            ret = create_subprocess("/bin/bash", "-i", 0); //interactive
         }
 #else
 
@@ -400,17 +399,13 @@ int service_to_fd(const char *name)
 				if (recovery_mode)
 					shell_cmd = "/sbin/bash";
 				else
-					shell_cmd = "/system/bin/bash";
-				
+					shell_cmd = "/system/xbin/bash";
+									
         if(name[6]) {
             ret = create_subprocess(shell_cmd, "-c", name + 6);
         } else {
-            ret = create_subprocess(shell_cmd, "--login", 0); //interactive
+						ret = create_subprocess(shell_cmd, "-i", 0); //interactive
         }
-
-
-#endif
-#if !ADB_HOST
     } else if(!strncmp(name, "sync:", 5)) {
         ret = create_service_thread(file_sync_service, NULL);
     } else if(!strncmp(name, "remount:", 8)) {

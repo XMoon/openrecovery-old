@@ -670,7 +670,7 @@ static int local_build_list(copyinfo **filelist,
 }
 
 
-static int copy_local_dir_remote(int fd, const char *lpath, const char *rpath, int checktimestamps, int listonly)
+static int copy_local_dir_remote(int fd, const char *lpath, const char *rpath, int checktimestamps)
 {
     copyinfo *filelist = 0;
     copyinfo *ci, *next;
@@ -718,9 +718,8 @@ static int copy_local_dir_remote(int fd, const char *lpath, const char *rpath, i
     for(ci = filelist; ci != 0; ci = next) {
         next = ci->next;
         if(ci->flag == 0) {
-            fprintf(stderr,"%spush: %s -> %s\n", listonly ? "would " : "", ci->src, ci->dst);
-            if(!listonly &&
-               sync_send(fd, ci->src, ci->dst, ci->time, ci->mode, 0 /* no verify APK */)){
+            fprintf(stderr,"push: %s -> %s\n", ci->src, ci->dst);
+            if(sync_send(fd, ci->src, ci->dst, ci->time, ci->mode, 0 /* no verify APK */)){
                 return 1;
             }
             pushed++;
@@ -758,7 +757,7 @@ int do_sync_push(const char *lpath, const char *rpath, int verifyApk)
 
     if(S_ISDIR(st.st_mode)) {
         BEGIN();
-        if(copy_local_dir_remote(fd, lpath, rpath, 0, 0)) {
+        if(copy_local_dir_remote(fd, lpath, rpath, 0)) {
             return 1;
         } else {
             END();
@@ -960,7 +959,7 @@ int do_sync_pull(const char *rpath, const char *lpath)
         return 1;
     }
 
-    if(S_ISREG(mode) || S_ISLNK(mode) || S_ISCHR(mode) || S_ISBLK(mode)) {
+    if(S_ISREG(mode) || S_ISCHR(mode) || S_ISBLK(mode)) {
         if(stat(lpath, &st) == 0) {
             if(S_ISDIR(st.st_mode)) {
                     /* if we're copying a remote file to a local directory,
@@ -1002,7 +1001,7 @@ int do_sync_pull(const char *rpath, const char *lpath)
     }
 }
 
-int do_sync_sync(const char *lpath, const char *rpath, int listonly)
+int do_sync_sync(const char *lpath, const char *rpath)
 {
     fprintf(stderr,"syncing %s...\n",rpath);
 
@@ -1013,7 +1012,7 @@ int do_sync_sync(const char *lpath, const char *rpath, int listonly)
     }
 
     BEGIN();
-    if(copy_local_dir_remote(fd, lpath, rpath, 1, listonly)){
+    if(copy_local_dir_remote(fd, lpath, rpath, 1)){
         return 1;
     } else {
         END();

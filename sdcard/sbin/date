@@ -1,4 +1,4 @@
-#!/sbin/sh
+#!/sbin/bash
 
 if [ "$TZ" == "" ]; then
 	if [ -f /etc/timezone ]; then

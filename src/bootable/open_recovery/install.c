@@ -157,7 +157,7 @@ handle_or_update(const char *path, ZipArchive *zip)
 	
 	//ensure the target directory on the sdcard exists and is clean
 	sprintf(cmd, "rm -rf %s", OR_UPDATE_EXTRACT_DIR_NAME); 
-  system(cmd);
+  run_shell_script(cmd, 0, NULL);
 	
 	if (mkdir_recursive(OR_UPDATE_EXTRACT_DIR_NAME))
 	{
@@ -173,7 +173,7 @@ handle_or_update(const char *path, ZipArchive *zip)
     
     //clear it
     sprintf(cmd, "rm -rf %s", OR_UPDATE_EXTRACT_DIR_NAME); 
-    system(cmd);
+    run_shell_script(cmd, 0, NULL);
     return 1;
 	}
 		
@@ -185,7 +185,7 @@ handle_or_update(const char *path, ZipArchive *zip)
 	
 	//clear it
 	sprintf(cmd, "rm -rf %s", OR_UPDATE_EXTRACT_DIR_NAME); 
-  system(cmd);
+  run_shell_script(cmd, 0, NULL);
 	return INSTALL_SUCCESS;
 }
 
@@ -268,6 +268,8 @@ try_update_binary(const char *path, ZipArchive *zip)
   //        ui_print <string>
   //            display <string> on the screen.
   //
+  //				stasis
+  //						quit the gui
   //   - the name of the package zip file.
   //
 
@@ -340,9 +342,8 @@ try_update_binary(const char *path, ZipArchive *zip)
       if (str) 
         ui_print(str);
       else
-        ui_print("\n");
-        
-    } 
+        ui_print("\n");       
+    }
     else 
       LOGE("unknown command [%s]\n", command);   
   }
@@ -387,11 +388,41 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
 	argp[2] = (char *)command;
 	fprintf(stderr, "Running Shell Script: \"%s\"\n", command);
 	
+	//interactive menu shared memory node
+	int imenu_fd = 0;
+	
 	//pipes
 	int script_pipefd[2];
 		
 	if (stdoutToUI)
+	{
   	pipe(script_pipefd);
+  	
+  	if((imenu_fd = open(INTERACTIVE_MENU_SHM, (O_CREAT | O_RDWR),
+				             666)) < 0 ) 
+		{
+			LOGE("Failed opening the shared memory node for interactive menu.\n");
+			LOGE("Interactive menu disabled.\n");
+		}
+		else
+		{
+			ftruncate(imenu_fd, sizeof(interactive_menu_struct));
+			if ((interactive_menu = ((interactive_menu_struct*) mmap(0, sizeof(interactive_menu_struct), (PROT_READ | PROT_WRITE),
+                   MAP_SHARED, imenu_fd, 0))) == MAP_FAILED)
+			{
+				LOGE("Failed opening the shared memory node for interactive menu.\n");
+				LOGE("Interactive menu disabled.\n");
+				interactive_menu = NULL;
+			}
+			else
+			{
+				interactive_menu->in_trigger = 0;
+				interactive_menu->out_trigger = 0;
+				interactive_menu->header[0] = '\0';
+				interactive_menu->items[0][0] = '\0';
+			}
+		}
+	}
 
 	pid_t child = fork();
 	if (child == 0) 
@@ -420,10 +451,7 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
 	
 	//status for the waitpid	
 	int sts;
-	
-	//interactive menu shared memory node
-	int imenu_fd = 0;
-	
+		
 	if (stdoutToUI)
 	{				
 		char buffer[1024+1];
@@ -435,30 +463,6 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
   	// Change flags on fd
   	fcntl(script_pipefd[0], F_SETFL, f);
   	
-		if((imenu_fd = open(INTERACTIVE_MENU_SHM, (O_CREAT | O_RDWR),
-				             666)) < 0 ) 
-		{
-			LOGE("Failed opening the shared memory node for interactive menu.\n");
-			LOGE("Interactive menu disabled.\n");
-		}
-		else
-		{
-			ftruncate(imenu_fd, sizeof(interactive_menu_struct));
-			if ((interactive_menu = ((interactive_menu_struct*) mmap(0, sizeof(interactive_menu_struct), (PROT_READ | PROT_WRITE),
-                   MAP_SHARED, imenu_fd, 0))) == MAP_FAILED)
-			{
-				LOGE("Failed opening the shared memory node for interactive menu.\n");
-				LOGE("Interactive menu disabled.\n");
-			}
-			else
-			{
-				interactive_menu->in_trigger = 0;
-				interactive_menu->out_trigger = 0;
-				interactive_menu->header[0] = '\0';
-				interactive_menu->items[0][0] = '\0';
-			}
-		}
-
 								
   	while (1)
   	{
@@ -466,6 +470,7 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
   		if (interactive_menu != NULL && interactive_menu->in_trigger)
   		{
   			interactive_menu->in_trigger = 0;
+  			fprintf(stderr, "run_shell_script: interactive_menu triggered\n");
   			//first print the rest, but don't bother if there is an error
   			int rv = read(script_pipefd[0], buffer, 1024);	
   			if (rv > 0)
@@ -490,6 +495,7 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
 				
 				//show the menu
 				ui_led_toggle(0);
+				fprintf(stderr, "run_shell_script: showing interactive menu\n");
 				int chosen_item = show_interactive_menu(headers, items);
         ui_led_blink(1);
         
@@ -560,6 +566,8 @@ void run_shell_script(const char *command, int stdoutToUI, char** extra_env_vari
 			close(imenu_fd);
 			remove(INTERACTIVE_MENU_SHM);
 		}
+		
+		interactive_menu = NULL;
 	}
 }
 

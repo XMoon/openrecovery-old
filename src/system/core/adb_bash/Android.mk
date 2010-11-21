@@ -62,6 +62,7 @@ LOCAL_SRC_FILES := \
 	file_sync_client.c \
 	$(EXTRA_SRCS) \
 	$(USB_SRCS) \
+	shlist.c \
 	utils.c \
 	usb_vendors.c
 
@@ -73,7 +74,7 @@ else
 endif
 
 LOCAL_CFLAGS += -O2 -g -DADB_HOST=1  -Wall -Wno-unused-parameter
-LOCAL_CFLAGS += -D_XOPEN_SOURCE -D_GNU_SOURCE
+LOCAL_CFLAGS += -D_XOPEN_SOURCE -D_GNU_SOURCE -DSH_HISTORY
 LOCAL_MODULE := adb_bash
 
 LOCAL_STATIC_LIBRARIES := libzipfile libunz $(EXTRA_STATIC_LIBS)
@@ -127,10 +128,7 @@ LOCAL_SRC_FILES := \
 	log_service.c \
 	utils.c
 
-LOCAL_C_INCLUDES +=\
-	system/core/envfix
-
-LOCAL_CFLAGS := -O2 -DADB_HOST=0 -Wall -Wno-unused-parameter
+LOCAL_CFLAGS := -O2 -g -DADB_HOST=0 -Wall -Wno-unused-parameter
 LOCAL_CFLAGS += -D_XOPEN_SOURCE -D_GNU_SOURCE
 
 # TODO: This should probably be board specific, whether or not the kernel has
@@ -155,4 +153,3 @@ else
 endif
 
 endif
-

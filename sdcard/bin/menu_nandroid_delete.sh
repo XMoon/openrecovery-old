@@ -11,8 +11,10 @@ if [ -d "$NAND_DIR_ADB" ]; then
 	do
 		if [ "$DIR" != "$NAND_DIR_ADB/*" ]; then
 		
-			STATUS=`stat -c=%F "$DIR"`
-			if [ "$STATUS" == "=directory" ];	then
+			stat $DIR | grep directory
+			STATUS=$?	
+			
+			if [ $STATUS -eq 0 ];	then
 				BASE_DIR=`basename "$DIR"`
 				echo "$BASE_DIR:shell:nandroid-delete_openrecovery.sh \"$DIR\"" >> "$MENU_FILE"
 			fi
@@ -26,8 +28,10 @@ if [ -d "$NAND_DIR_OPEN" ]; then
 	do
 		if [ "$DIR" != "$NAND_DIR_OPEN/*" ]; then
 		
-			STATUS=`stat -c=%F "$DIR"`
-			if [ "$STATUS" == "=directory" ]; then
+			stat $DIR | grep directory
+			STATUS=$?	
+			
+			if [ $STATUS -eq 0 ];	then
 				BASE_DIR=`basename "$DIR"`
 				echo "$BASE_DIR:shell:nandroid-delete_openrecovery.sh \"$DIR\"" >> "$MENU_FILE"
 			fi

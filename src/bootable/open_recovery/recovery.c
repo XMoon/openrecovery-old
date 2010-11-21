@@ -148,15 +148,29 @@ static const struct option OPTIONS[] = {
   { NULL, 0, NULL, 0 },
 };
 
+#if OPEN_RCVR_VERSION_LITE
+
 static const char *COMMAND_FILE = "CACHE:recovery/command";
 static const char *INTENT_FILE = "CACHE:recovery/intent";
+static const char *LOG_FILE = "CACHE:recovery/open_recovery_lite_log";
+static const char *TEMPORARY_LOG_FILE = "/tmp/open_recovery_lite.log";
+
+#else
+
+static const char *COMMAND_FILE = "CACHE:openrecovery/command";
+static const char *INTENT_FILE = "CACHE:openrecovery/intent";
 static const char *LOG_FILE = "CACHE:recovery/open_recovery_log";
-static const char *FULL_PACKAGE_FILE = "SDCARD:OpenRecovery.zip";
 static const char *TEMPORARY_LOG_FILE = "/tmp/open_recovery.log";
+
+#endif
+
+
+static const char *FULL_PACKAGE_FILE = "SDCARD:OpenRecovery.zip";
+
 
 //yeah, CamelCase fail
 static char* BASE_MENU_TITLE[] = {	"Motorola "OPEN_RECOVERY_PHONE" Open Recovery",
-																		"Version "OPEN_RECOVERY_VERSION,
+																		OPEN_RECOVERY_VERSION,
 																		"Created by Skrilax_CZ",
 																		"",
 																		OPEN_RECOVERY_NAVIG,
@@ -212,13 +226,34 @@ check_and_fclose(FILE *fp, const char *name)
   fclose(fp);
 }
 
-#if OPEN_RCVR_VERSION_LITE
-//used only by lite version
-
 // command line args come from, in decreasing precedence:
 //   - the actual command line
 //   - the bootloader control block (one per line, after "recovery")
 //   - the contents of COMMAND_FILE (one per line)
+
+static void
+get_cmd_file_args(int *argc, char ***argv) 
+{
+  FILE *fp = fopen_root_path(COMMAND_FILE, "r");
+  if (fp != NULL) 
+  {
+    char *argv0 = (*argv)[0];
+    *argv = (char **) malloc(sizeof(char *) * MAX_ARGS);
+    (*argv)[0] = argv0;  // use the same program name
+
+    char buf[MAX_LINE_LENGTH];
+    for (*argc = 1; *argc < MAX_ARGS; ++*argc) 
+    {
+      if (!fgets(buf, sizeof(buf), fp)) 
+      	break;
+      (*argv)[*argc] = strdup(strtok(buf, "\r\n"));  // Strip newline.
+    }
+
+    check_and_fclose(fp, COMMAND_FILE);
+    LOGI("Got arguments from %s\n", COMMAND_FILE);
+  }
+}
+
 static void
 get_args(int *argc, char ***argv) 
 {
@@ -258,26 +293,7 @@ get_args(int *argc, char ***argv)
 
   // --- if that doesn't work, try the command file
   if (*argc <= 1) 
-  {
-    FILE *fp = fopen_root_path(COMMAND_FILE, "r");
-    if (fp != NULL) 
-    {
-      char *argv0 = (*argv)[0];
-      *argv = (char **) malloc(sizeof(char *) * MAX_ARGS);
-      (*argv)[0] = argv0;  // use the same program name
-
-      char buf[MAX_LINE_LENGTH];
-      for (*argc = 1; *argc < MAX_ARGS; ++*argc) 
-      {
-        if (!fgets(buf, sizeof(buf), fp)) 
-        	break;
-        (*argv)[*argc] = strdup(strtok(buf, "\r\n"));  // Strip newline.
-      }
-
-      check_and_fclose(fp, COMMAND_FILE);
-      LOGI("Got arguments from %s\n", COMMAND_FILE);
-    }
-  }
+ 		get_cmd_file_args(argc, argv);
 
   // --> write the arguments we have back into the bootloader control block
   // always boot into recovery after this (until finish_recovery() is called)
@@ -291,8 +307,6 @@ get_args(int *argc, char ***argv)
   }
   set_bootloader_message(&boot);
 }
-
-#endif
 
 static void
 set_sdcard_update_bootloader_message()
@@ -348,7 +362,6 @@ finish_recovery(const char *send_intent)
     memset(&boot, 0, sizeof(boot));
     set_bootloader_message(&boot);
 
-#if OPEN_RCVR_VERSION_LITE
     // Remove the command file, so recovery won't repeat indefinitely.
     char path[PATH_MAX] = "";
     if (ensure_root_path_mounted(COMMAND_FILE) != 0 ||
@@ -356,7 +369,6 @@ finish_recovery(const char *send_intent)
         (unlink(path) && errno != ENOENT)) {
         LOGW("Can't unlink %s\n", COMMAND_FILE);
     }
-#endif
     sync();  // For good measure.
 }
 
@@ -394,7 +406,7 @@ prepend_title(char** headers, int* title_length)
 }
 
 static int
-get_menu_selection(char** headers, char** items, int title_length, int start_sel, int menu_only, int ignore_selectability) 
+get_menu_selection(char** headers, char** items, unsigned char* selectability, int title_length, int start_sel, int menu_only) 
 {
   // throw away keys pressed previously, so user doesn't
   // accidentally trigger menu items.
@@ -434,7 +446,7 @@ get_menu_selection(char** headers, char** items, int title_length, int start_sel
             if (selected < 0)
             	selected = num_items - 1;
             	
-            if (ignore_selectability || MENU_ITEMS_SELECTABLE[selected])
+            if (selectability[selected])
             	break;
            }
           
@@ -450,7 +462,7 @@ get_menu_selection(char** headers, char** items, int title_length, int start_sel
             if (selected >= num_items)
             	selected = 0;
             	
-         		if (ignore_selectability || MENU_ITEMS_SELECTABLE[selected])
+         		if (selectability[selected])
             	break;
           }
           
@@ -488,17 +500,10 @@ wipe_data(int confirm)
 {
   if (confirm) 
   {
-    static char** title_headers = NULL;
-    static int title_length = 0;
-
-    if (title_headers == NULL) 
-    {
-      char* headers[] = { "Confirm wipe of all user data?",
-                          "  THIS CAN NOT BE UNDONE.",
-                          "",
-                          NULL };
-      title_headers = prepend_title(headers, &title_length);
-    }
+    char* headers[] = { "Confirm wipe of all user data?",
+                        "  THIS CAN NOT BE UNDONE.",
+                        "",
+                        NULL };
 
     char* items[] = { " No",
                       " No",
@@ -512,20 +517,21 @@ wipe_data(int confirm)
                       " No",
                       " No",
                       NULL };
-
-    int chosen_item = get_menu_selection(title_headers, items, title_length, 0, 1, 1);
-    hide_menu_selection();
-    if (chosen_item != 7) {
+                      
+    int chosen_item = show_interactive_menu(headers, items);
+		hide_menu_selection();
+    if (chosen_item != 8) 
         return;
-    }
   }
 
+	ui_led_blink(1);
   ui_print("\n-- Wiping data...\n");
   device_wipe_data();
   erase_root("DATA:");
   erase_root("CACHE:");
   ensure_common_roots_mounted();
   ui_print("Data wipe complete.\n");
+ 	ui_led_toggle(0);
 }
 
 static void 
@@ -791,11 +797,22 @@ create_menu(const char *fname, const char *shellcmd)
 int show_interactive_menu(char** headers, char** items)
 {
 	int title_length;
-	char** title;
+	int item_length;
+	char** title, **p;
+	unsigned char* selectability;
 	
 	title = prepend_title(headers, &title_length);
-	int chosen_item = get_menu_selection(title, items, title_length, 0, 1, 1);
+	
+	item_length = 0;
+	for (p = items; *p; ++p, ++item_length);
+	
+	selectability = malloc(item_length);
+	memset(selectability, 1, item_length);
+	
+	int chosen_item = get_menu_selection(title, items, selectability, title_length, 0, 1);
   hide_menu_selection();
+  
+  free(selectability);
   free(title);
   return chosen_item + 1;
 }
@@ -852,19 +869,25 @@ prompt_and_wait()
 	headers = prepend_title(MENU_HEADERS, &title_length);
 	int override_initial_selection = -1;	
 	
-	finish_recovery(NULL);
-		
+	int call_finish_in_loop = 1;
+			
   for (;;) {  
+
+		if (call_finish_in_loop)
+		{
+			finish_recovery(NULL);
+			call_finish_in_loop = 0;
+		}
 
 		int menu_item;		
 		
 		if (override_initial_selection != -1)
 		{
-			menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, override_initial_selection, 0, 0);
+			menu_item = get_menu_selection(headers, MENU_ITEMS, MENU_ITEMS_SELECTABLE, title_length, override_initial_selection, 0);
 			override_initial_selection = -1;
 		}
 		else
-    	menu_item = get_menu_selection(headers, MENU_ITEMS, title_length, 0, 0, 0);
+    	menu_item = get_menu_selection(headers, MENU_ITEMS, MENU_ITEMS_SELECTABLE, title_length, 0, 0);
 
     // Parse open recovery commands
     int chosen_item = select_action(menu_item);
@@ -883,11 +906,11 @@ prompt_and_wait()
        	return;
 
       case ITEM_WIPE_DATA:
-				ui_led_blink(1);
         wipe_data(ui_text_visible());
-				ui_led_toggle(0);
+
         if (!ui_text_visible()) 
         	return;
+        	
         ui_set_background(BACKGROUND_ICON_ERROR);
         break;
 
@@ -922,9 +945,12 @@ prompt_and_wait()
       	{      	
 		      ui_print("\n-- Install from sdcard...\n");
 		      ui_led_blink(1);
-		      ensure_common_roots_mounted();
+		      ensure_common_roots_unmounted();
+		      ensure_root_path_mounted("SDCARD:");
 		      set_sdcard_update_bootloader_message();
+		      call_finish_in_loop = 1;
 		      int status = install_package(MENU_ITEMS_TARGET[menu_item]);
+		      ensure_common_roots_mounted();
 		      if (status != INSTALL_SUCCESS) 
 		      {
 						ui_set_background(BACKGROUND_ICON_ERROR);
@@ -1239,10 +1265,16 @@ main(int argc, char **argv)
 
 	ui_init();
 
-	//only lite recovery reacts on the command
+	//react on the command
+	//full version only checks for it's own command file
+	//the rest is done by lite version
 #if OPEN_RCVR_VERSION_LITE
-
 	get_args(&argc, &argv);
+#else
+	argc = 1;
+	get_cmd_file_args(&argc, &argv);
+#endif
+	
 
 	int previous_runs = 0;
 	const char *send_intent = NULL;
@@ -1264,30 +1296,30 @@ main(int argc, char **argv)
         continue;
     }
   }
-#endif
 
 	device_recovery_start();
 
-#if OPEN_RCVR_VERSION_LITE
   fprintf(stderr, "Command:");
   for (arg = 0; arg < argc; arg++) 
     fprintf(stderr, " \"%s\"", argv[arg]);
   
   fprintf(stderr, "\n\n");
-#endif
 
   property_list(print_property, NULL);
   fprintf(stderr, "\n");
 
-	//only lite recovery reacts on the command
-#if OPEN_RCVR_VERSION_LITE
   int status = INSTALL_SUCCESS;
 
   if (update_package != NULL) 
   {
-      status = install_package(update_package);
-      if (status != INSTALL_SUCCESS) 
-      	ui_print("Installation aborted.\n");
+    status = install_package(update_package);
+    if (status != INSTALL_SUCCESS) 
+    	ui_print("Installation aborted.\n");
+    
+    char package_path[PATH_MAX] = "";
+    if (!ensure_root_path_mounted(update_package) &&
+    		translate_root_path(update_package, package_path, sizeof(package_path)))
+    	unlink(package_path);
   } 
   else if (wipe_data) 
   {
@@ -1310,27 +1342,37 @@ main(int argc, char **argv)
   else 
     status = INSTALL_ERROR;  // No command specified
  
+#if OPEN_RCVR_VERSION_LITE
 	int or_up_sts = install_package(FULL_PACKAGE_FILE);
   if (or_up_sts != INSTALL_SUCCESS) 
   {
 		ui_print("Failed to switch into the full version.\n");
 		ui_print("Running Lite version only.\n");
   } 
+#endif
 
+	//lite OR doesn't have text visible by default
+	//but full OR does
+
+#if OPEN_RCVR_VERSION_LITE
   if (status != INSTALL_SUCCESS) 
   	ui_set_background(BACKGROUND_ICON_ERROR);
   if (status != INSTALL_SUCCESS || ui_text_visible())
   	prompt_and_wait();
+#else
+	if (status != INSTALL_SUCCESS) 
+	{
+		ui_set_background(BACKGROUND_ICON_ERROR);
+		prompt_and_wait();
+	}
+#endif
 
   // If there is a radio image pending, reboot now to install it.
   maybe_install_firmware_update(send_intent);
 
   // Otherwise, get ready to boot the main system...
   finish_recovery(send_intent);
-#else
-	ui_set_background(BACKGROUND_ICON_ERROR);
-	prompt_and_wait();
-#endif
+
   ui_print("Rebooting...\n");
   sync();
   ensure_common_roots_unmounted();

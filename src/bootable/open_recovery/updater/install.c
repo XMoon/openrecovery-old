@@ -1003,6 +1003,7 @@ Value* ReadFileFn(const char* name, State* state, int argc, Expr* argv[]) {
     return v;
 }
 
+
 void RegisterInstallFunctions() {
     RegisterFunction("mount", MountFn);
     RegisterFunction("is_mounted", IsMountedFn);
@@ -1030,6 +1031,6 @@ void RegisterInstallFunctions() {
     RegisterFunction("sha1_check", Sha1CheckFn);
 
     RegisterFunction("ui_print", UIPrintFn);
-
+    
     RegisterFunction("run_program", RunProgramFn);
 }

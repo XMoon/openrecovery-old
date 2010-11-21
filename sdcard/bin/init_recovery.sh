@@ -4,8 +4,8 @@
 # $1 the phone suffix
 #
 # SHOLS - Milestone (A853, XT702)
+# STR - Milestone XT (XT720)
 # STCU  - Sholes Tablet (XT701)
-# TITA  - Titanium (XT800)
 
 echo "Running the initialization script..."
 
@@ -98,13 +98,19 @@ echo "Reboot System:reboot:*" >> "$MAIN_MENU_FILE"
 echo "Settings:menu:settings.menu" >> "$MAIN_MENU_FILE"
 echo "USB Mass Storage Mode:shell:usb_mass_storage.sh" >> "$MAIN_MENU_FILE"
 
+#only if not a tablet phone
 if [ $TABLET -eq 0 ]; then
 	echo "Console:console:*" >> "$MAIN_MENU_FILE"
 fi	
 
 echo "Nandroid:menu:nand.menu" >> "$MAIN_MENU_FILE"
 echo "Application Menu:menu:app.menu" >> "$MAIN_MENU_FILE"
-echo "Root Phone:shell:root.sh" >> "$MAIN_MENU_FILE"
+
+#only if not bootstrap
+if [ ! -f /etc/bootstrap ]; then
+	echo "Root Phone:shell:root.sh" >> "$MAIN_MENU_FILE"
+fi
+
 echo "Run Script:scripted_menu:runscript.menu:menu_scripts.sh" >> "$MAIN_MENU_FILE"
 echo "Apply Update:scripted_menu:customupdate.menu:menu_updates.sh" >> "$MAIN_MENU_FILE"
 echo "Wipe Dalvik Cache:shell:wipe_dalvik_cache.sh" >> "$MAIN_MENU_FILE"

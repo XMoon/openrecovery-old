@@ -53,9 +53,9 @@ int ensure_root_path_mounted(const char *root_path);
 
 int ensure_root_path_unmounted(const char *root_path);
 
-void ensure_common_roots_mounted();
+int ensure_common_roots_mounted();
 
-void ensure_common_roots_unmounted();
+int ensure_common_roots_unmounted();
 
 const MtdPartition *get_root_mtd_partition(const char *root_path);
 

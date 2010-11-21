@@ -3,3 +3,14 @@ Bootstrap:
 ===============================================================================
 
 - bootstrap version is used on phones without having the vulnerable recovery
+- how to reboot to bootstrap: "reboot openrecovery" or hold "volume up" key while booting the phone
+- what to do if cannot boot to bootstrap open recovery:
+  1) reflash a SBF with system partition
+  2) install open recovery again
+- the following files are needed for bootstrap open recovery:
+  1) /system/persistent/*
+  2) /system/bin/sh
+- custom "sh" implements "sh hijack" and calls "sh_hijack.sh" on normal boot if the file exists
+- nandroid doesn't overwrite bootstrap open recovery with the one from backup
+- currently the bootstrap version is used on:
+  1) Motorola Milestone XT720 

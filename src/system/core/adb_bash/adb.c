@@ -144,6 +144,9 @@ void put_apacket(apacket *p)
 void handle_online(void)
 {
     D("adb: online\n");
+#if !ADB_HOST
+    property_set("adb.connected","1");
+#endif
 }
 
 void handle_offline(atransport *t)
@@ -151,6 +154,9 @@ void handle_offline(atransport *t)
     D("adb: offline\n");
     //Close the associated usb
     run_transport_disconnects(t);
+#if !ADB_HOST
+    property_set("adb.connected","");
+#endif
 }
 
 #if TRACE_PACKETS
@@ -687,7 +693,7 @@ void start_device_log(void)
 #endif
 
 #if ADB_HOST
-int launch_server(int server_port)
+int launch_server()
 {
 #ifdef HAVE_WIN32_PROC
     /* we need to start the server in the background                    */
@@ -822,23 +828,30 @@ int launch_server(int server_port)
 }
 #endif
 
-/* Constructs a local name of form tcp:port.
- * target_str points to the target string, it's content will be overwritten.
- * target_size is the capacity of the target string.
- * server_port is the port number to use for the local name.
- */
-void build_local_name(char* target_str, size_t target_size, int server_port)
-{
-  snprintf(target_str, target_size, "tcp:%d", server_port);
-}
-
-int adb_main(int is_daemon, int server_port)
+int adb_main(int is_daemon)
 {
 #if !ADB_HOST
     int secure = 0;
     int port;
     char value[PROPERTY_VALUE_MAX];
-    
+
+
+    property_get("ro.debuggable", value, "");
+    if (strcmp(value, "1") == 0) {
+        // prevent the OOM killer from killing us
+        char text[64];
+        snprintf(text, sizeof text, "/proc/%d/oom_adj", (int)getpid());
+        int fd = adb_open(text, O_WRONLY);
+        if (fd >= 0) {
+            // -17 should make us immune to OOM
+            snprintf(text, sizeof text, "%d", -17);
+            adb_write(fd, text, strlen(text));
+            adb_close(fd);
+        } else {
+            D("adb: unable to open %s\n", text);
+        }
+    }
+
 #endif
 
     atexit(adb_cleanup);
@@ -856,17 +869,12 @@ int adb_main(int is_daemon, int server_port)
     HOST = 1;
     usb_vendors_init();
     usb_init();
-    local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
+    local_init(ADB_LOCAL_TRANSPORT_PORT);
 
-    char local_name[30];
-    build_local_name(local_name, sizeof(local_name), server_port);
-    if(install_listener(local_name, "*smartsocket*", NULL)) {
+    if(install_listener("tcp:5037", "*smartsocket*", NULL)) {
         exit(1);
     }
 #else
-//I don't want secure on the stone
-#ifdef ADB_SECURE
-		
     /* run adbd in secure mode if ro.secure is set and
     ** we are not in the emulator
     */
@@ -885,17 +893,27 @@ int adb_main(int is_daemon, int server_port)
                 if (strcmp(value, "1") == 0) {
                     secure = 0;
                 }
-            }
+            } else {
+		/* For user/signed builds, Allow root access for ADB if
+		Access token is valid. ro.atvc_allow_all_adb is set by the ATVC
+		service if the access token is valid for debugging */
+                property_get("ro.sys.atvc_allow_all_adb", value, "");
+                if (strcmp(value, "1") == 0) {
+                    secure = 0;
+                }
+	    }
         }
     }
 
-    /* don't listen on a port (default 5037) if running in secure mode */
+    /* don't listen on port 5037 if we are running in secure mode */
     /* don't run as root if we are running in secure mode */
     if (secure) {
         struct __user_cap_header_struct header;
         struct __user_cap_data_struct cap;
 
-        prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0);
+        if (prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) != 0) {
+            exit(1);
+        }
 
         /* add extra groups:
         ** AID_ADB to access the USB driver
@@ -909,11 +927,17 @@ int adb_main(int is_daemon, int server_port)
         */
         gid_t groups[] = { AID_ADB, AID_LOG, AID_INPUT, AID_INET, AID_GRAPHICS,
                            AID_NET_BT, AID_NET_BT_ADMIN, AID_SDCARD_RW, AID_MOUNT };
-        setgroups(sizeof(groups)/sizeof(groups[0]), groups);
+        if (setgroups(sizeof(groups)/sizeof(groups[0]), groups) != 0) {
+            exit(1);
+        }
 
         /* then switch user and group to "shell" */
-        setgid(AID_SHELL);
-        setuid(AID_SHELL);
+        if (setgid(AID_SHELL) != 0) {
+            exit(1);
+        }
+        if (setuid(AID_SHELL) != 0) {
+            exit(1);
+        }
 
         /* set CAP_SYS_BOOT capability, so "adb reboot" will succeed */
         header.version = _LINUX_CAPABILITY_VERSION;
@@ -922,26 +946,18 @@ int adb_main(int is_daemon, int server_port)
         cap.inheritable = 0;
         capset(&header, &cap);
 
-        D("Local port disabled\n");
-    } else 
-#endif
-    {
-        char local_name[30];
-        build_local_name(local_name, sizeof(local_name), server_port);
-        if(install_listener(local_name, "*smartsocket*", NULL)) {
+        D("Local port 5037 disabled\n");
+    } else {
+        if(install_listener("tcp:5037", "*smartsocket*", NULL)) {
             exit(1);
         }
     }
 
-
         /* for the device, start the usb transport if the
-        ** android usb device exists and the "service.adb.tcp.port" and
-        ** "persist.adb.tcp.port" properties are not set.
-        ** Otherwise start the network transport.
+        ** android usb device exists and "service.adb.tcp"
+        ** is not set, otherwise start the network transport.
         */
-    property_get("service.adb.tcp.port", value, "");
-    if (!value[0])
-        property_get("persist.adb.tcp.port", value, "");
+    property_get("service.adb.tcp.port", value, "0");
     if (sscanf(value, "%d", &port) == 1 && port > 0) {
         // listen on TCP port specified by service.adb.tcp.port property
         local_init(port);
@@ -950,7 +966,7 @@ int adb_main(int is_daemon, int server_port)
         usb_init();
     } else {
         // listen on default port
-        local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
+        local_init(ADB_LOCAL_TRANSPORT_PORT);
     }
     init_jdwp();
 #endif
@@ -973,105 +989,6 @@ int adb_main(int is_daemon, int server_port)
 
     return 0;
 }
-
-#if ADB_HOST
-void connect_device(char* host, char* buffer, int buffer_size)
-{
-    int port, fd;
-    char* portstr = strchr(host, ':');
-    char hostbuf[100];
-    char serial[100];
-
-    strncpy(hostbuf, host, sizeof(hostbuf) - 1);
-    if (portstr) {
-        if (portstr - host >= sizeof(hostbuf)) {
-            snprintf(buffer, buffer_size, "bad host name %s", host);
-            return;
-        }
-        // zero terminate the host at the point we found the colon
-        hostbuf[portstr - host] = 0;
-        if (sscanf(portstr + 1, "%d", &port) == 0) {
-            snprintf(buffer, buffer_size, "bad port number %s", portstr);
-            return;
-        }
-    } else {
-        port = DEFAULT_ADB_LOCAL_TRANSPORT_PORT;
-    }
-
-    snprintf(serial, sizeof(serial), "%s:%d", hostbuf, port);
-    if (find_transport(serial)) {
-        snprintf(buffer, buffer_size, "already connected to %s", serial);
-        return;
-    }
-
-    fd = socket_network_client(hostbuf, port, SOCK_STREAM);
-    if (fd < 0) {
-        snprintf(buffer, buffer_size, "unable to connect to %s:%d", host, port);
-        return;
-    }
-
-    D("client: connected on remote on fd %d\n", fd);
-    close_on_exec(fd);
-    disable_tcp_nagle(fd);
-    register_socket_transport(fd, serial, port, 0);
-    snprintf(buffer, buffer_size, "connected to %s", serial);
-}
-
-void connect_emulator(char* port_spec, char* buffer, int buffer_size)
-{
-    char* port_separator = strchr(port_spec, ',');
-    if (!port_separator) {
-        snprintf(buffer, buffer_size,
-                "unable to parse '%s' as <console port>,<adb port>",
-                port_spec);
-        return;
-    }
-
-    // Zero-terminate console port and make port_separator point to 2nd port.
-    *port_separator++ = 0;
-    int console_port = strtol(port_spec, NULL, 0);
-    int adb_port = strtol(port_separator, NULL, 0);
-    if (!(console_port > 0 && adb_port > 0)) {
-        *(port_separator - 1) = ',';
-        snprintf(buffer, buffer_size,
-                "Invalid port numbers: Expected positive numbers, got '%s'",
-                port_spec);
-        return;
-    }
-
-    /* Check if the emulator is already known.
-     * Note: There's a small but harmless race condition here: An emulator not
-     * present just yet could be registered by another invocation right
-     * after doing this check here. However, local_connect protects
-     * against double-registration too. From here, a better error message
-     * can be produced. In the case of the race condition, the very specific
-     * error message won't be shown, but the data doesn't get corrupted. */
-    atransport* known_emulator = find_emulator_transport_by_adb_port(adb_port);
-    if (known_emulator != NULL) {
-        snprintf(buffer, buffer_size,
-                "Emulator on port %d already registered.", adb_port);
-        return;
-    }
-
-    /* Check if more emulators can be registered. Similar unproblematic
-     * race condition as above. */
-    int candidate_slot = get_available_local_transport_index();
-    if (candidate_slot < 0) {
-        snprintf(buffer, buffer_size, "Cannot accept more emulators.");
-        return;
-    }
-
-    /* Preconditions met, try to connect to the emulator. */
-    if (!local_connect_arbitrary_ports(console_port, adb_port)) {
-        snprintf(buffer, buffer_size,
-                "Connected to emulator on ports %d,%d", console_port, adb_port);
-    } else {
-        snprintf(buffer, buffer_size,
-                "Could not connect to emulator on ports %d,%d",
-                console_port, adb_port);
-    }
-}
-#endif
 
 int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s)
 {
@@ -1130,16 +1047,43 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         return 0;
     }
 
-    // add a new TCP transport, device or emulator
+    // add a new TCP transport
     if (!strncmp(service, "connect:", 8)) {
         char buffer[4096];
+        int port, fd;
         char* host = service + 8;
-        if (!strncmp(host, "emu:", 4)) {
-            connect_emulator(host + 4, buffer, sizeof(buffer));
-        } else {
-            connect_device(host, buffer, sizeof(buffer));
+        char* portstr = strchr(host, ':');
+
+        if (!portstr) {
+            snprintf(buffer, sizeof(buffer), "unable to parse %s as <host>:<port>", host);
+            goto done;
         }
-        // Send response for emulator and device
+        if (find_transport(host)) {
+            snprintf(buffer, sizeof(buffer), "Already connected to %s", host);
+            goto done;
+        }
+
+        // zero terminate host by overwriting the ':'
+        *portstr++ = 0;
+        if (sscanf(portstr, "%d", &port) == 0) {
+            snprintf(buffer, sizeof(buffer), "bad port number %s", portstr);
+            goto done;
+        }
+
+        fd = socket_network_client(host, port, SOCK_STREAM);
+        if (fd < 0) {
+            snprintf(buffer, sizeof(buffer), "unable to connect to %s:%d", host, port);
+            goto done;
+        }
+
+        D("client: connected on remote on fd %d\n", fd);
+        close_on_exec(fd);
+        disable_tcp_nagle(fd);
+        snprintf(buf, sizeof buf, "%s:%d", host, port);
+        register_socket_transport(fd, buf, port, 0);
+        snprintf(buffer, sizeof(buffer), "connected to %s:%d", host, port);
+
+done:
         snprintf(buf, sizeof(buf), "OKAY%04x%s",(unsigned)strlen(buffer), buffer);
         writex(reply_fd, buf, strlen(buf));
         return 0;
@@ -1150,23 +1094,12 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         char buffer[4096];
         memset(buffer, 0, sizeof(buffer));
         char* serial = service + 11;
-        if (serial[0] == 0) {
-            // disconnect from all TCP devices
-            unregister_all_tcp_transports();
-        } else {
-            char hostbuf[100];
-            // assume port 5555 if no port is specified
-            if (!strchr(serial, ':')) {
-                snprintf(hostbuf, sizeof(hostbuf) - 1, "%s:5555", serial);
-                serial = hostbuf;
-            }
-            atransport *t = find_transport(serial);
+        atransport *t = find_transport(serial);
 
-            if (t) {
-                unregister_transport(t);
-            } else {
-                snprintf(buffer, sizeof(buffer), "No such device %s", serial);
-            }
+        if (t) {
+            unregister_transport(t);
+        } else {
+            snprintf(buffer, sizeof(buffer), "No such device %s", serial);
         }
 
         snprintf(buf, sizeof(buf), "OKAY%04x%s",(unsigned)strlen(buffer), buffer);
@@ -1274,6 +1207,6 @@ int main(int argc, char **argv)
     }
 
     start_device_log();
-    return adb_main(0, DEFAULT_ADB_PORT);
+    return adb_main(0);
 #endif
 }

@@ -415,7 +415,7 @@ int run_console(const char* command)
 	init_console();
 				
 	pid_t child;
-	int childfd = create_subprocess("/sbin/bash", "--login", NULL, &child);
+	int childfd = create_subprocess("/sbin/bash", "-i", NULL, &child);
 	
 	if (childfd < 0)
 	{

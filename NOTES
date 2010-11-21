@@ -20,10 +20,7 @@ Mod version:
 ===============================================================================
 
 - "ro.or.mod.author" and "ro.or.mod.version" properties in default.prop are read and parsed to specify mod author and mod version
-- Location of default.prop file:
-* MILESTONE: in the 2ndinit.SHOLS folder in the OpenRecovery folder
-* SHOLES TABLET: in the lite recovery image
-* MILESTONE XT720: in the bootstrap
+- Location of default.prop file is in 2ndinit.#phonetype#
 
 ===============================================================================
 OR update.zip format:

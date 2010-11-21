@@ -1,18 +1,24 @@
 
 on init
-    export PATH /sbin
+    export PATH /sbin:/bin
     export ANDROID_ROOT /system
+    export ANDROID_ASSETS /system/app
     export ANDROID_DATA /data
+    export LD_LIBRARY_PATH /lib
     export EXTERNAL_STORAGE /sdcard
-
-    symlink /system/etc /etc
+    export INIT_DIR /sdcard/OpenRecovery/init
+    export APP_DIR /app
+    export TAGPREFIX /tags/.
+    export DEVICE_MEM_TYPE mtd
 
     mkdir /sdcard
     mkdir /system
     mkdir /data
     mkdir /cache
+    mkdir /etc
     mount /tmp /tmp tmpfs
 
+		write /etc/reinit 1
     write /sys/class/leds/lcd-backlight/als  0
     write /sys/class/leds/lcd-backlight/brightness  255
     write /sys/power/cpuidle_deepest_state   0
@@ -29,10 +35,3 @@ on boot
 
 service recovery /sbin/recovery
 
-service adbd /sbin/adbd recovery
-
-on property:persist.service.adb.enable=1
-    start adbd
-
-on property:persist.service.adb.enable=0
-    stop adbd

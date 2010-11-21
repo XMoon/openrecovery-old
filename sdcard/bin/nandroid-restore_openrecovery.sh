@@ -403,6 +403,22 @@ for image in system data cache cust cdrom; do
 		echo "done"
 	fi
 	
+	if [ "$image" == "system" ]; then
+		if [ -d /system/persistent ]; then
+			echo -n "${image}: Backing up persistent data..."
+			
+			mkdir /system_persistent > /dev/null
+			cp -a /system/persistent /system_persistent > /dev/null
+			
+			#check .sh tag
+			if [ -f /system/persistent/.persistent_sh ]; then
+				cp -a /system/bin/sh /system_persistent/sh > /dev/null
+			fi
+			
+			echo "done"
+		fi
+	fi
+	
 	umount /$image 2> /dev/null
 	echo -n "${image}: Erasing..."
 	
@@ -418,6 +434,28 @@ for image in system data cache cust cdrom; do
 	echo -n "${image}: Restoring..."
 	$unyaffs $image.img /$image	> /dev/null 2> /dev/null
 	echo "done"
+	
+	if [ "$image" == "system" ]; then
+		if [ -d /system_persistent ]; then
+			echo -n "${image}: Restoring persistent data..."
+			
+			if [ -d /system/persistent ]; then
+				rm -r /system/persistent > /dev/null
+			fi
+			
+			cp -a /system_persistent/persistent /system > /dev/null
+			
+			#check .sh tag (can be checked in the copied one)
+			if [ -f /system_persistent/persistent/.persistent_sh ]; then
+				rm /system/bin/sh > /dev/null
+				cp -a /system_persistent/sh /system/bin/sh  > /dev/null
+			fi
+			
+			rm -r /system_persistent > /dev/null
+			
+			echo "done"
+		fi
+	fi
 	
 	if [ $COMPRESSED -eq 1 ]; then
 		#delete the uncompressed part

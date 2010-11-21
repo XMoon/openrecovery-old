@@ -22,9 +22,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 static const char *CACHE_NAME = "CACHE:";
 static const char *MISC_NAME = "MISC:";
+static const char *OR_IS_BOOTSTRAP_MARK = "/etc/bootstrap";
+static const char *OR_DO_BOOTSTRAP_MARK = "/cache/.boot_to_or";
 static const int MISC_PAGES = 3;         // number of pages to save
 static const int MISC_COMMAND_PAGE = 1;  // bootloader command is this page
 
@@ -41,83 +46,138 @@ static void dump_data(const char *data, int len) {
 }
 #endif
 
-int get_bootloader_message(struct bootloader_message *out) {
-    size_t write_size;
-    const MtdPartition *part = get_root_mtd_partition(MISC_NAME);
-    if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) {
-        LOGE("Can't find %s\n", MISC_NAME);
-        return -1;
-    }
+int get_bootloader_message(struct bootloader_message *out) 
+{
+	//if in bootstrap version - generate the bootstrap message
+	struct stat buf;
+	ensure_root_path_mounted("CACHE:");
+ 	int fstat = stat(OR_IS_BOOTSTRAP_MARK, &buf);
+ 	
+ 	//handle the bootstrap
+ 	if(!fstat)
+	{
+		fstat = stat(OR_DO_BOOTSTRAP_MARK, &buf);
+		if(!fstat)
+		{
+			strcpy(out->command, "boot-recovery");
+			strcpy(out->recovery,"recovery\n");
+		}
+		else
+		{
+			out->command[0] = '\0';
+			out->recovery[0] = '\0';
+		}
+		
+		return 0;
+	}
 
-    MtdReadContext *read = mtd_read_partition(part);
-    if (read == NULL) {
-        LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
-        return -1;
-    }
 
-    const ssize_t size = write_size * MISC_PAGES;
-    char data[size];
-    ssize_t r = mtd_read_data(read, data, size);
-    if (r != size) LOGE("Can't read %s\n(%s)\n", MISC_NAME, strerror(errno));
-    mtd_read_close(read);
-    if (r != size) return -1;
+  size_t write_size;
+  const MtdPartition *part = get_root_mtd_partition(MISC_NAME);
+  if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) 
+  {
+		LOGE("Can't find %s\n", MISC_NAME);
+		return -1;
+  }
+
+  MtdReadContext *read = mtd_read_partition(part);
+  if (read == NULL) 
+  {
+		LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
+		return -1;
+  }
+
+  const ssize_t size = write_size * MISC_PAGES;
+  char data[size];
+  ssize_t r = mtd_read_data(read, data, size);
+  if (r != size) LOGE("Can't read %s\n(%s)\n", MISC_NAME, strerror(errno));
+  mtd_read_close(read);
+  if (r != size) return -1;
 
 #ifdef LOG_VERBOSE
-    printf("\n--- get_bootloader_message ---\n");
-    dump_data(data, size);
-    printf("\n");
+  printf("\n--- get_bootloader_message ---\n");
+  dump_data(data, size);
+  printf("\n");
 #endif
 
-    memcpy(out, &data[write_size * MISC_COMMAND_PAGE], sizeof(*out));
-    return 0;
+  memcpy(out, &data[write_size * MISC_COMMAND_PAGE], sizeof(*out));
+  return 0;
 }
 
-int set_bootloader_message(const struct bootloader_message *in) {
-    size_t write_size;
-    const MtdPartition *part = get_root_mtd_partition(MISC_NAME);
-    if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) {
-        LOGE("Can't find %s\n", MISC_NAME);
-        return -1;
-    }
+int set_bootloader_message(const struct bootloader_message *in) 
+{
+	//if in bootstrap version - generate the bootstrap message
+	struct stat buf;
+	ensure_root_path_mounted("CACHE:");
+ 	int fstat = stat(OR_IS_BOOTSTRAP_MARK, &buf);
+ 	
+ 	//handle the bootstrap
+ 	if(!fstat)
+	{
+		if (!strcmp(in->command, "boot-recovery") && !strcmp(in->recovery, "recovery\n"))
+		{
+			int mark_fd = creat(OR_DO_BOOTSTRAP_MARK, 0644);
+			close(mark_fd);
+		}
+		else
+			remove(OR_DO_BOOTSTRAP_MARK);
+		
+		return 0;
+	}
 
-    MtdReadContext *read = mtd_read_partition(part);
-    if (read == NULL) {
-        LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
-        return -1;
-    }
+	size_t write_size;
+	const MtdPartition *part = get_root_mtd_partition(MISC_NAME);
+		  
+	if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) 
+	{
+		LOGE("Can't find %s\n", MISC_NAME);
+		return -1;
+	}
 
-    ssize_t size = write_size * MISC_PAGES;
-    char data[size];
-    ssize_t r = mtd_read_data(read, data, size);
-    if (r != size) LOGE("Can't read %s\n(%s)\n", MISC_NAME, strerror(errno));
-    mtd_read_close(read);
-    if (r != size) return -1;
+	MtdReadContext *read = mtd_read_partition(part);
+	if (read == NULL) 
+	{
+		LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
+		return -1;
+	}
 
-    memcpy(&data[write_size * MISC_COMMAND_PAGE], in, sizeof(*in));
+	ssize_t size = write_size * MISC_PAGES;
+	char data[size];
+	ssize_t r = mtd_read_data(read, data, size);
+	if (r != size) 
+		LOGE("Can't read %s\n(%s)\n", MISC_NAME, strerror(errno));
+	mtd_read_close(read);
+	if (r != size) 
+		return -1;
+
+	memcpy(&data[write_size * MISC_COMMAND_PAGE], in, sizeof(*in));
 
 #ifdef LOG_VERBOSE
-    printf("\n--- set_bootloader_message ---\n");
-    dump_data(data, size);
-    printf("\n");
+	printf("\n--- set_bootloader_message ---\n");
+	dump_data(data, size);
+	printf("\n");
 #endif
 
-    MtdWriteContext *write = mtd_write_partition(part);
-    if (write == NULL) {
-        LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
-        return -1;
-    }
-    if (mtd_write_data(write, data, size) != size) {
-        LOGE("Can't write %s\n(%s)\n", MISC_NAME, strerror(errno));
-        mtd_write_close(write);
-        return -1;
-    }
-    if (mtd_write_close(write)) {
-        LOGE("Can't finish %s\n(%s)\n", MISC_NAME, strerror(errno));
-        return -1;
-    }
+	MtdWriteContext *write = mtd_write_partition(part);
+	if (write == NULL) 
+	{
+		LOGE("Can't open %s\n(%s)\n", MISC_NAME, strerror(errno));
+		return -1;
+	}
+	if (mtd_write_data(write, data, size) != size) 
+	{
+		LOGE("Can't write %s\n(%s)\n", MISC_NAME, strerror(errno));
+		mtd_write_close(write);
+		return -1;
+	}
+	if (mtd_write_close(write)) 
+	{
+		LOGE("Can't finish %s\n(%s)\n", MISC_NAME, strerror(errno));
+		return -1;
+	}
 
-    LOGI("Set boot command \"%s\"\n", in->command[0] != 255 ? in->command : "");
-    return 0;
+	LOGI("Set boot command \"%s\"\n", in->command[0] != 255 ? in->command : "");
+	return 0;
 }
 
 /* Update Image

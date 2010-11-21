@@ -1,4 +1,25 @@
 ================
+Version 1.46
+================
+Features
+- support for XT720 (bootstrap version)
+- possible custom OTA updates (/cache/openrecovery/command)
+
+Changes
+- lite versions doesn't have adbd service
+- Open Recovery console always have bash with colors
+- cyanogenmod bash and busybox used
+- modules are under kernel version directory
+
+Bugfixes
+- cleanup
+- better 2nd-init calling
+- fixed a bug where some settings was not persistent between reboots
+- fixed a bug where while applying update.zip the partitions were mounted by default which caused corruption if erase was called
+- fixed a bug when /system/bin/sh was called if used Open Recovery update.zip format
+- fixed a bug when after applying an update.zip the next reboot was always to recovery
+
+================
 Version 1.45
 ================
 Features

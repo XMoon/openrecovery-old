@@ -9,24 +9,22 @@ edify_src_files := \
 
 # "-x c" forces the lex/yacc files to be compiled as c;
 # the build system otherwise forces them to be c++.
-edify_cflags := -x c -Os
+edify_cflags := -x c
 
 #
 # Build the host-side command line tool
 #
-# unsupported, the stock one is just fine
-#
-#include $(CLEAR_VARS)
-#
-#LOCAL_SRC_FILES := \
-#		$(edify_src_files) \
-#		main.c
-#
-#LOCAL_CFLAGS := $(edify_cflags) -g -O0
-#LOCAL_MODULE := edify
-#LOCAL_YACCFLAGS := -v
-#
-#include $(BUILD_HOST_EXECUTABLE)
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+		$(edify_src_files) \
+		main.c
+
+LOCAL_CFLAGS := $(edify_cflags) -g -O0
+LOCAL_MODULE := edify-or
+LOCAL_YACCFLAGS := -v
+
+include $(BUILD_HOST_EXECUTABLE)
 
 #
 # Build the device-side library

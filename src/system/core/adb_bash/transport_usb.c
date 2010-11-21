@@ -62,7 +62,7 @@ static int remote_read(apacket *p, atransport *t)
 
     if(check_header(p)) {
         D("remote usb: check_header failed\n");
-        return -1;
+        exit(-1);
     }
 
     if(p->msg.data_length) {
@@ -74,7 +74,7 @@ static int remote_read(apacket *p, atransport *t)
 
     if(check_data(p)) {
         D("remote usb: check_data failed\n");
-        return -1;
+        exit(-1);
     }
 
     return 0;
